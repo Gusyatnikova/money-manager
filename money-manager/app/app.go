@@ -2,11 +2,15 @@ package app
 
 import (
 	"context"
-	"github.com/rs/zerolog"
+	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
 
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
+
+	"money-manager/money-manager/app/config"
 	"money-manager/money-manager/usecase"
 	"money-manager/pkg/http"
 )
@@ -17,11 +21,19 @@ type moneyManager struct {
 }
 
 func NewMoneyManager(ctx context.Context) usecase.MoneyManagerServer {
+	cfg, err := config.NewConfig()
+	if err != nil {
+		log.Panic().Msgf("err in NewMoneyManager.NewConfig(): %s", err.Error())
+	}
+
 	initLogger()
 
 	uc := usecase.NewMoneyManagerUseCase()
 
-	httpServer := http.NewServer(ctx)
+	httpServerCfg := http.ServerConfig{
+		Address: fmt.Sprint(cfg.Http.Host, ":", cfg.Http.Port),
+	}
+	httpServer := http.NewServer(ctx, httpServerCfg)
 
 	return &moneyManager{
 		httpServer: httpServer,

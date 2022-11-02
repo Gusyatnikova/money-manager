@@ -7,18 +7,13 @@ import (
 
 type (
 	Config struct {
-		HTTP `yaml:"http"`
-		Log  `yaml:"logger"`
-		PG   `yaml:"postgres"`
+		Http HTTP
+		Pg   PG
 	}
 
 	HTTP struct {
 		Port string `env-required:"true" env:"HTTP_PORT"`
 		Host string `env-required:"true" env:"HTTP_HOST"`
-	}
-
-	Log struct {
-		Level string `env-required:"true" env:"LOG_LEVEL"`
 	}
 
 	PG struct {

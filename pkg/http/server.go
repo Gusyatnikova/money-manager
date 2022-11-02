@@ -14,13 +14,18 @@ type Server interface {
 	Shutdown()
 }
 
+type ServerConfig struct {
+	Address string
+}
+
 type server struct {
 	ctx        context.Context
 	httpServer *echo.Echo
 }
 
-func NewServer(ctx context.Context) Server {
+func NewServer(ctx context.Context, cfg ServerConfig) Server {
 	e := echo.New()
+	e.Server.Addr = cfg.Address
 
 	e.Use(
 		mw.LoggerWithConfig(mw.LoggerConfig{
