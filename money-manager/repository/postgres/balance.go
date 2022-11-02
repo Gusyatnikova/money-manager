@@ -51,5 +51,20 @@ func (e *pgMoneyManagerRepo) AddFundsToUser(ctx context.Context, balOp entity.Ba
 }
 
 func (e *pgMoneyManagerRepo) GetBalance(ctx context.Context, usr entity.User) (entity.UserBalance, error) {
-	return entity.UserBalance{}, nil
+	ub := entity.UserBalance{}
+
+	sqlCmd := `
+		select amount from public.user where user_id = $1
+    `
+
+	row := e.db.QueryRow(ctx, sqlCmd, usr.UserId)
+	var amount uint64
+	err := row.Scan(&amount)
+	if err != nil {
+		return ub, errors.Wrap(err, "MoneyManager.pgMoneyManagerRepo.GetBalance.Scan()")
+	}
+
+	ub.Balance = amount
+
+	return ub, nil
 }
