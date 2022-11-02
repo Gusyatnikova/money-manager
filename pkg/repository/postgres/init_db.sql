@@ -1,15 +1,12 @@
 -------------------------------------------------
--- Create table users
+-- Create table user
 -------------------------------------------------
 
-//use varchar(27) for id
-//created  timestamp without timezone
-create table if not exists users
+create table if not exists public.user
 (
-    id       bytea     not null primary key,
-    name     varchar   not null unique,
-    password varchar   not null,
-    created  timestamp not null default now()
+    id       bigserial    not null primary key,
+    user_id   varchar(27) not null unique,
+    amount   bigint,
+    created  timestamp    without time zone not null default now(),
+    updated  timestamp    without time zone null
 );
-
-create unique index if not exists chatty_user_name_idx on chatty.users (name);

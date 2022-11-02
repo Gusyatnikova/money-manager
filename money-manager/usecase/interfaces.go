@@ -13,11 +13,11 @@ type MoneyManagerServer interface {
 }
 
 type MoneyManagerUseCase interface {
-	AddFunds(context.Context, entity.BalanceOperation) error
+	AddFundsToUser(context.Context, entity.BalanceOperation) error
 	GetBalance(context.Context, entity.User) (entity.UserBalance, error)
 }
 
-type MoneyManagerRepoHandler interface {
-	AddFunds(context.Context, entity.BalanceOperation) error
+type MoneyManagerRepo interface {
+	AddFundsToUser(context.Context, entity.BalanceOperation) error
 	GetBalance(context.Context, entity.User) (entity.UserBalance, error)
 }

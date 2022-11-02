@@ -11,8 +11,10 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"money-manager/money-manager/app/config"
+	"money-manager/money-manager/repository/postgres"
 	"money-manager/money-manager/usecase"
 	"money-manager/pkg/http"
+	dbConn "money-manager/pkg/repository/postgres"
 )
 
 type moneyManager struct {
@@ -28,7 +30,13 @@ func NewMoneyManager(ctx context.Context) usecase.MoneyManagerServer {
 
 	initLogger()
 
-	uc := usecase.NewMoneyManagerUseCase()
+	pgConn, err := dbConn.Connection(ctx, cfg.Pg)
+	if err != nil {
+		log.Panic().Msgf("err in NewMoneyManager.dbConn.Connection(): %s", err.Error())
+	}
+
+	moneyManagerRepo := postgres.NewPgMoneyManagerRepo(pgConn)
+	uc := usecase.NewMoneyManagerUseCase(moneyManagerRepo)
 
 	httpServerCfg := http.ServerConfig{
 		Address: fmt.Sprint(cfg.Http.Host, ":", cfg.Http.Port),
