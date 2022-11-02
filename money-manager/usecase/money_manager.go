@@ -7,5 +7,5 @@ func NewMoneyManagerUseCase() MoneyManagerUseCase {
 	return &moneyManager{}
 }
 
-func (e *moneyManager) AddFunds() {}
-func (e *moneyManager) GetFunds() {}
+func (e *moneyManager) AddFunds()   {}
+func (e *moneyManager) GetBalance() {}

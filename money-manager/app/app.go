@@ -33,7 +33,7 @@ func NewMoneyManager(ctx context.Context) usecase.MoneyManagerServer {
 	httpServerCfg := http.ServerConfig{
 		Address: fmt.Sprint(cfg.Http.Host, ":", cfg.Http.Port),
 	}
-	httpServer := http.NewServer(ctx, httpServerCfg)
+	httpServer := http.NewServer(ctx, httpServerCfg, uc)
 
 	return &moneyManager{
 		httpServer: httpServer,

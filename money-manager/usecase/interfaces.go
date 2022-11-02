@@ -8,5 +8,5 @@ type MoneyManagerServer interface {
 
 type MoneyManagerUseCase interface {
 	AddFunds()
-	GetFunds()
+	GetBalance()
 }

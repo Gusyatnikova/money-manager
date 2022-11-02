@@ -2,6 +2,8 @@ package http
 
 import (
 	"context"
+	"money-manager/money-manager/delivery/http/http_v1"
+	"money-manager/money-manager/usecase"
 	"time"
 
 	"github.com/labstack/echo/v4"
@@ -23,7 +25,7 @@ type server struct {
 	httpServer *echo.Echo
 }
 
-func NewServer(ctx context.Context, cfg ServerConfig) Server {
+func NewServer(ctx context.Context, cfg ServerConfig, uc usecase.MoneyManagerUseCase) Server {
 	e := echo.New()
 	e.Server.Addr = cfg.Address
 
@@ -33,6 +35,8 @@ func NewServer(ctx context.Context, cfg ServerConfig) Server {
 				`"uri":"${uri}","query":"${query}","status":${status},"error":"${error}"}` + "\n",
 		}),
 		mw.Recover())
+
+	http_v1.NewServerHandler(e, uc)
 
 	return &server{
 		ctx:        ctx,

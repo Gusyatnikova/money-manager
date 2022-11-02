@@ -15,9 +15,5 @@ func NewServerHandler(e *echo.Echo, useCase usecase.MoneyManagerUseCase) {
 		uc: useCase,
 	}
 
-	e.GET("/accounts/{account_id}/balance", h.GetFunds)
-}
-
-func (e *ServerHandler) GetFunds(eCtx echo.Context) error {
-	return nil
+	e.GET("/accounts/:account_id/balance", h.GetBalance)
 }
