@@ -56,7 +56,7 @@ func (e *server) Shutdown() {
 	ctx, cancel := context.WithTimeout(e.ctx, 2*time.Second)
 	defer cancel()
 
-	log.Warn().Msgf("Shutting down the server")
+	log.Info().Msgf("Shutting down the server")
 
 	if err := e.httpServer.Server.Shutdown(ctx); err != nil {
 		log.Error().Msgf("err in server.Shutdown(): %s", err.Error())
