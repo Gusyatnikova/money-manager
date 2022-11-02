@@ -32,6 +32,10 @@ func (e *ServerHandler) parseBalanceOperationBody(eCtx echo.Context) (entity.Bal
 	return *balanceOp, errors.New("Content-Type header is missing")
 }
 
+func (e *ServerHandler) isValidUserId(id string) bool {
+	return id != ""
+}
+
 func (e *ServerHandler) noContentErrResponse(eCtx echo.Context, statusCode int, errMsg string) error {
 	log.Error().Msg(errMsg)
 
