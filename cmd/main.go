@@ -8,7 +8,6 @@ import (
 
 func main() {
 	moneyManager := app.NewMoneyManager(context.Background())
-
 	moneyManager.Run()
 	moneyManager.ListenForShutdown()
 }

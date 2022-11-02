@@ -41,11 +41,11 @@ func NewServer(ctx context.Context, cfg ServerConfig) Server {
 }
 
 func (e *server) Run() {
+	log.Info().Msgf("HTTP server listening at %v", e.httpServer.Server.Addr)
+
 	if err := e.httpServer.Server.ListenAndServe(); err != nil {
 		log.Panic().Msgf("err in server.Run(): %s", err.Error())
 	}
-
-	log.Info().Msgf("HTTP server listening at %v", 1111)
 }
 
 func (e *server) Shutdown() {
