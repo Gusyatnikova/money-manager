@@ -15,6 +15,6 @@ func NewServerHandler(e *echo.Echo, useCase usecase.MoneyManagerUseCase) {
 		uc: useCase,
 	}
 
-	e.GET("money-manager/v1/accounts/:account_id/balance", h.GetBalance)
-	e.POST("money-manager/v1/accounts", h.AddFunds)
+	e.GET("money-manager/v1/users/:user_id/balance", h.GetBalance)
+	e.POST("money-manager/v1/users", h.AddFunds)
 }
