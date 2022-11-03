@@ -1,14 +1,14 @@
 package entity
 
+type Fund struct {
+	Amount uint64
+}
+
+type Balance struct {
+	Current   Fund
+	Available Fund
+}
+
 type User struct {
 	UserId string
-}
-
-type UserBalance struct {
-	Balance uint64
-}
-
-type BalanceOperation struct {
-	UserId string
-	Amount uint64
 }
