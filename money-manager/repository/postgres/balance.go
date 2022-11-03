@@ -22,7 +22,7 @@ func NewPgMoneyManagerRepo(db *pgxpool.Pool) usecase.MoneyManagerRepo {
 	}
 }
 
-func (e *pgMoneyManagerRepo) AddFundsToUser(ctx context.Context, balOp entity.BalanceOperation) error {
+func (e *pgMoneyManagerRepo) AddFundsToUser(ctx context.Context, usr entity.User, fnd entity.Fund) error {
 	ts, err := e.db.Begin(ctx)
 	if err != nil {
 		return errors.Wrap(err, "MoneyManager.pgMoneyManagerRepo.AddFundsToUser.Begin()")
@@ -30,8 +30,8 @@ func (e *pgMoneyManagerRepo) AddFundsToUser(ctx context.Context, balOp entity.Ba
 
 	prepPart := fmt.Sprintf("%d", time.Now().UnixNano())
 	sqlCmd := `
-		insert into public.user values(default, $1, $2, now(), null)
-			on conflict (user_id) do update set (amount, updated) = (public.user.amount + $2, now())
+		update public.user set (amount, updated) = (public.user.amount + $2, now())
+		where user_id = $1
 	`
 
 	stmt, err := ts.Prepare(ctx, "add"+prepPart, sqlCmd)
@@ -39,7 +39,7 @@ func (e *pgMoneyManagerRepo) AddFundsToUser(ctx context.Context, balOp entity.Ba
 		return errors.Wrap(err, "MoneyManager.pgMoneyManagerRepo.AddFundsToUser.Prepare()")
 	}
 
-	if _, err := ts.Exec(ctx, stmt.SQL, balOp.UserId, balOp.Amount); err != nil {
+	if _, err := ts.Exec(ctx, stmt.SQL, usr.UserId, fnd.Amount); err != nil {
 		return errors.Wrap(err, "MoneyManager.pgMoneyManagerRepo.AddFundsToUser.Exec()")
 	}
 
@@ -50,8 +50,35 @@ func (e *pgMoneyManagerRepo) AddFundsToUser(ctx context.Context, balOp entity.Ba
 	return nil
 }
 
-func (e *pgMoneyManagerRepo) GetBalance(ctx context.Context, usr entity.User) (entity.UserBalance, error) {
-	ub := entity.UserBalance{}
+func (e *pgMoneyManagerRepo) AddUser(ctx context.Context, usr entity.User, fnd entity.Fund) error {
+	ts, err := e.db.Begin(ctx)
+	if err != nil {
+		return errors.Wrap(err, "MoneyManager.pgMoneyManagerRepo.AddFundsToUser.Begin()")
+	}
+
+	prepPart := fmt.Sprintf("%d", time.Now().UnixNano())
+	sqlCmd := `
+		insert into public.user values(default, $1, $2, now(), null)
+	`
+
+	stmt, err := ts.Prepare(ctx, "add"+prepPart, sqlCmd)
+	if err != nil {
+		return errors.Wrap(err, "MoneyManager.pgMoneyManagerRepo.AddFundsToUser.Prepare()")
+	}
+
+	if _, err := ts.Exec(ctx, stmt.SQL, usr.UserId, fnd.Amount); err != nil {
+		return errors.Wrap(err, "MoneyManager.pgMoneyManagerRepo.AddFundsToUser.Exec()")
+	}
+
+	if err := ts.Commit(ctx); err != nil {
+		return errors.Wrap(err, "MoneyManager.pgMoneyManagerRepo.AddFundsToUser.Commit()")
+	}
+
+	return nil
+}
+
+func (e *pgMoneyManagerRepo) GetBalance(ctx context.Context, usr entity.User) (entity.Balance, error) {
+	ub := entity.Balance{}
 
 	sqlCmd := `
 		select amount from public.user where user_id = $1
@@ -64,7 +91,8 @@ func (e *pgMoneyManagerRepo) GetBalance(ctx context.Context, usr entity.User) (e
 		return ub, errors.Wrap(err, "MoneyManager.pgMoneyManagerRepo.GetBalance.Scan()")
 	}
 
-	ub.Balance = amount
+	ub.Available = entity.Fund{Amount: amount}
+	ub.Current = entity.Fund{Amount: amount}
 
 	return ub, nil
 }
