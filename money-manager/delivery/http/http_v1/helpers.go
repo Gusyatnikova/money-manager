@@ -10,30 +10,43 @@ import (
 	"money-manager/money-manager/entity"
 )
 
-func (e *ServerHandler) parseBalanceOperationBody(eCtx echo.Context) (entity.BalanceOperation, error) {
+func (e *ServerHandler) parseUserAmountBody(eCtx echo.Context) (fundsReqBody, error) {
 	contentTypes := eCtx.Request().Header.Get(echo.HeaderContentType)
 
-	balanceOp := &entity.BalanceOperation{}
+	frBody := &fundsReqBody{}
 
 	if contentTypes != "" {
 		for _, ct := range strings.Split(contentTypes, ";") {
 			if strings.TrimSpace(ct) == echo.MIMEApplicationJSON {
 
-				err := eCtx.Bind(balanceOp)
+				err := eCtx.Bind(frBody)
 				if err != nil {
-					return *balanceOp, err
+					return *frBody, err
 				}
 
-				return *balanceOp, nil
+				return *frBody, nil
 			}
 		}
 	}
 
-	return *balanceOp, errors.New("Content-Type header is missing")
+	return *frBody, errors.New("Content-Type header is missing")
 }
 
-func (e *ServerHandler) isValidUserId(id string) bool {
-	return id != ""
+func reqBodyToUser(rb fundsReqBody) entity.User {
+	return entity.User{
+		UserId: rb.UserId,
+	}
+}
+
+func makeUserBalanceResponse(usr entity.User, bal entity.Balance) userBalanceResp {
+	return userBalanceResp{
+		UserId: usr.UserId,
+		Ub: balance{
+			CurAmount:   bal.Current.Amount,
+			AvailAmount: bal.Available.Amount,
+			Unit:        "kop",
+		},
+	}
 }
 
 func (e *ServerHandler) noContentErrResponse(eCtx echo.Context, statusCode int, errMsg string) error {

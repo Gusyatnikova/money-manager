@@ -12,22 +12,23 @@ import (
 type balance struct {
 	CurAmount   uint64 `json:"current_amount"`
 	AvailAmount uint64 `json:"available_amount"`
+	Unit        string `json:"unit"`
 }
 
-type userBalance struct {
+type userBalanceResp struct {
 	UserId string  `json:"user_id"`
 	Ub     balance `json:"balance"`
 }
 
-func (e *ServerHandler) GetBalance(eCtx echo.Context) error {
-	usrParam := eCtx.Param("user_id")
-	if !e.isValidUserId(usrParam) {
-		return e.noContentErrResponse(eCtx, http.StatusBadRequest,
-			fmt.Sprintf("err in ServerHandler.GetBalance(): invalid userId"))
-	}
+type fundsReqBody struct {
+	UserId string `json:"user_id"`
+	Amount string `json:"amount"`
+	Unit   string `json:"unit"`
+}
 
+func (e *ServerHandler) GetBalance(eCtx echo.Context) error {
 	usr := entity.User{
-		UserId: usrParam,
+		UserId: eCtx.Param("user_id"),
 	}
 
 	bal, err := e.uc.GetBalance(eCtx.Request().Context(), usr)
@@ -36,23 +37,15 @@ func (e *ServerHandler) GetBalance(eCtx echo.Context) error {
 			fmt.Sprintf("err in ServerHandler.GetBalance(): %v", err.Error()))
 	}
 
-	resp := &userBalance{
-		UserId: usr.UserId,
-		Ub: balance{
-			CurAmount:   bal.Balance,
-			AvailAmount: bal.Balance,
-		},
-	}
-
-	return eCtx.JSON(http.StatusOK, resp)
+	return eCtx.JSON(http.StatusOK, makeUserBalanceResponse(usr, bal))
 }
 
 func (e *ServerHandler) AddFunds(eCtx echo.Context) error {
-	balanceOp, err := e.parseBalanceOperationBody(eCtx)
+	reqBody, err := e.parseUserAmountBody(eCtx)
 	if err != nil {
 		return e.noContentErrResponse(eCtx, http.StatusBadRequest,
-			fmt.Sprintf("err in ServerHandler.AddFundsToUser.parseBalanceOperationBody(): %v", err))
+			fmt.Sprintf("err in ServerHandler.AddFundsToUser.parseUserAmountBody(): %v", err))
 	}
 
-	return e.uc.AddFundsToUser(eCtx.Request().Context(), balanceOp)
+	return e.uc.AddFundsToUser(eCtx.Request().Context(), reqBodyToUser(reqBody), reqBody.Amount, reqBody.Unit)
 }
