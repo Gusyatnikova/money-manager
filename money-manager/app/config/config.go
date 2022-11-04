@@ -17,12 +17,12 @@ type (
 	}
 
 	PG struct {
-		PoolMax  int    `env-required:"true" env:"PG_POOL_MAX"`
-		Host     string `env-required:"true" env:"PG_HOST"`
-		Port     int    `env-required:"true" env:"PG_PORT"`
-		User     string `env-required:"true" env:"PG_USER"`
-		Password string `env-required:"true" env:"PG_PASSWORD"`
-		DbName   string `env-required:"true" env:"PG_DB_NAME"`
+		PoolMax  int    `env-required:"true" env:"POSTGRES_POOL_MAX"`
+		Host     string `env-required:"true" env:"POSTGRES_HOST"`
+		Port     int    `env-required:"true" env:"POSTGRES_PORT"`
+		User     string `env-required:"true" env:"POSTGRES_USER"`
+		Password string `env-required:"true" env:"POSTGRES_PASSWORD"`
+		DbName   string `env-required:"true" env:"POSTGRES_DB"`
 	}
 )
 

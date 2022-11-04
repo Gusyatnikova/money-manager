@@ -1,0 +1,27 @@
+version: '3.7'
+
+services:
+  money-manager:
+    container_name: money_manager_run
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    ports:
+      - "8888:8888"
+    depends_on:
+      - postgresdb
+  postgresdb:
+    image: postgres
+    container_name: moneyManager_postgres
+    env_file:
+      - .env
+    environment:
+      PGDATA: /usr/local/pg/data_new/money_manager
+    volumes:
+      - pgdata:/usr/local/pg/data_new/money_manager
+    ports:
+      - "5432:5432"
+volumes:
+  pgdata:
