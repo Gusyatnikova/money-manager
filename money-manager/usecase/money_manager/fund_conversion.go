@@ -1,4 +1,4 @@
-package usecase
+package money_manager
 
 import (
 	"strconv"
@@ -9,7 +9,17 @@ import (
 	"money-manager/money-manager/entity"
 )
 
-func (e *moneyManager) makeFunds(fundStr string, unitStr string) (entity.Fund, error) {
+const (
+	RUB string = "RUB"
+	KOP        = "KOP"
+)
+
+const (
+	KopVal int64 = 1
+	RubVal       = 100 * KopVal
+)
+
+func makeFunds(fundStr string, unitStr string) (entity.Fund, error) {
 	var (
 		fnd     entity.Fund
 		fundVal uint64
@@ -17,28 +27,26 @@ func (e *moneyManager) makeFunds(fundStr string, unitStr string) (entity.Fund, e
 	)
 
 	unitVal := strings.ToUpper(unitStr)
-	if !e.isValidFundUnit(unitVal) {
-		return fnd, errors.New("err in moneyManager.AddFundsToUser.makeFunds(): Invalid fund unit")
+	if !isValidInputFund(fundStr, unitVal) {
+		return fnd, errors.New("err in moneyManager.AddFundsToUser.makeFunds(): Invalid fund")
 	}
 
 	if unitVal == RUB {
-		fundVal, err = e.stringRubToKop(fundStr)
+		fundVal, err = stringRubToKop(fundStr)
 	} else {
-		fundVal, err = e.stringToKop(fundStr)
+		fundVal, err = stringToKop(fundStr)
 	}
 
-	fnd.Amount = fundVal
+	fnd = entity.Fund(fundVal)
 	return fnd, err
 }
 
-func (e *moneyManager) balanceToFund(b entity.Balance) entity.Fund {
-	return entity.Fund{
-		Amount: b.Current.Amount,
-	}
+func balanceToFund(b entity.Balance) entity.Fund {
+	return b.Current
 }
 
-func (e *moneyManager) stringToKop(str string) (uint64, error) {
-	if !e.isValidFundInKop(str) {
+func stringToKop(str string) (uint64, error) {
+	if !isValidFundInKop(str) {
 		return 0, errors.New("err in moneyManager.AddFundsToUser.makeFunds.stringToKop(): Invalid fund value in KOP")
 	}
 
@@ -47,18 +55,18 @@ func (e *moneyManager) stringToKop(str string) (uint64, error) {
 	return val, nil
 }
 
-func (e *moneyManager) stringRubToKop(str string) (uint64, error) {
-	if !e.isValidFundInRub(str) {
+func stringRubToKop(str string) (uint64, error) {
+	if !isValidFundInRub(str) {
 		return 0, errors.New("err in moneyManager.AddFundsToUser.makeFunds.stringRubToKop(): Invalid fund value")
 	}
 
-	rub, kop, _ := e.splitStrToRubAndKop(str)
+	rub, kop, _ := splitStrToRubAndKop(str)
 	totalKop := rub*uint64(RubVal) + kop
 
 	return totalKop, nil
 }
 
-func (e *moneyManager) splitStrToRubAndKop(str string) (uint64, uint64, bool) {
+func splitStrToRubAndKop(str string) (uint64, uint64, bool) {
 	strParts := strings.Split(str, ".")
 	rubStr := strParts[0]
 

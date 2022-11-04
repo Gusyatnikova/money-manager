@@ -2,17 +2,17 @@ package http_v1
 
 import (
 	"fmt"
-	"net/http"
-
 	"github.com/labstack/echo/v4"
+	"github.com/pkg/errors"
+	"net/http"
 
 	"money-manager/money-manager/entity"
 )
 
 type balance struct {
-	CurAmount   uint64 `json:"current_amount"`
-	AvailAmount uint64 `json:"available_amount"`
-	Unit        string `json:"unit"`
+	CurAmount   entity.Fund `json:"current_amount"`
+	AvailAmount entity.Fund `json:"available_amount"`
+	Unit        string      `json:"unit"`
 }
 
 type userBalanceResp struct {
@@ -27,25 +27,49 @@ type fundsReqBody struct {
 }
 
 func (e *ServerHandler) GetBalance(eCtx echo.Context) error {
-	usr := entity.User{
-		UserId: eCtx.Param("user_id"),
-	}
+	usr := eCtx.QueryParam("user_id")
 
-	bal, err := e.uc.GetBalance(eCtx.Request().Context(), usr)
+	bal, err := e.uc.GetBalance(eCtx.Request().Context(), entity.UserId(usr))
 	if err != nil {
-		return e.noContentErrResponse(eCtx, http.StatusNotFound,
+		return noContentErrResponse(eCtx, http.StatusNotFound,
 			fmt.Sprintf("err in ServerHandler.GetBalance(): %v", err.Error()))
 	}
 
-	return eCtx.JSON(http.StatusOK, makeUserBalanceResponse(usr, bal))
+	return eCtx.JSON(http.StatusOK, makeUserBalanceResponse(entity.UserId(usr), bal))
 }
 
 func (e *ServerHandler) AddFunds(eCtx echo.Context) error {
-	reqBody, err := e.parseUserAmountBody(eCtx)
+	reqBody, err := parseUserAmountBody(eCtx)
 	if err != nil {
-		return e.noContentErrResponse(eCtx, http.StatusBadRequest,
+		return noContentErrResponse(eCtx, http.StatusBadRequest,
 			fmt.Sprintf("err in ServerHandler.AddFundsToUser.parseUserAmountBody(): %v", err))
 	}
 
-	return e.uc.AddFundsToUser(eCtx.Request().Context(), reqBodyToUser(reqBody), reqBody.Amount, reqBody.Unit)
+	return e.uc.AddFundsToUser(eCtx.Request().Context(), entity.UserId(reqBody.UserId), reqBody.Amount, reqBody.Unit)
+}
+
+func parseUserAmountBody(eCtx echo.Context) (fundsReqBody, error) {
+	frBody := fundsReqBody{}
+
+	if !isRequestBodyIsJSON(eCtx) {
+		return frBody, errors.New("Content-Type application/json is missing")
+	}
+
+	err := eCtx.Bind(&frBody)
+	if err != nil {
+		return frBody, errors.Wrap(err, "Unable parse request body")
+	}
+
+	return frBody, nil
+}
+
+func makeUserBalanceResponse(usr entity.UserId, bal entity.Balance) userBalanceResp {
+	return userBalanceResp{
+		UserId: string(usr),
+		Ub: balance{
+			CurAmount:   bal.Current,
+			AvailAmount: bal.Available,
+			Unit:        "kop",
+		},
+	}
 }

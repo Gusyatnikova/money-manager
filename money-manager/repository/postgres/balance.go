@@ -5,41 +5,36 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/jackc/pgx/v4/pgxpool"
+	"github.com/jackc/pgx/v4"
 	"github.com/pkg/errors"
 
 	"money-manager/money-manager/entity"
-	"money-manager/money-manager/usecase"
 )
 
-type pgMoneyManagerRepo struct {
-	db *pgxpool.Pool
-}
+const (
+	AddUserSqlCmd        = `insert into public.user values($1, $2, $3, now(), null)`
+	AddFundsToUserSqlCmd = `update public.user set (amount, updated) = (public.user.amount + $2, now())
+								where user_id = $1`
+	GetUserBalanceSqlCmd = `select min(u.amount), coalesce(sum(r.amount), 0) from public.user u
+								left join public.reserve r on u.id = r.user_id
+							where u.user_id = $1 group by u.id`
+)
 
-func NewPgMoneyManagerRepo(db *pgxpool.Pool) usecase.MoneyManagerRepo {
-	return &pgMoneyManagerRepo{
-		db: db,
-	}
-}
-
-func (e *pgMoneyManagerRepo) AddFundsToUser(ctx context.Context, usr entity.User, fnd entity.Fund) error {
+func (e *pgMoneyManagerRepo) AddFundsToUser(ctx context.Context, usr entity.UserId, fnd entity.Fund) error {
 	ts, err := e.db.Begin(ctx)
 	if err != nil {
 		return errors.Wrap(err, "MoneyManager.pgMoneyManagerRepo.AddFundsToUser.Begin()")
 	}
 
 	prepPart := fmt.Sprintf("%d", time.Now().UnixNano())
-	sqlCmd := `
-		update public.user set (amount, updated) = (public.user.amount + $2, now())
-		where user_id = $1
-	`
+	sqlCmd := AddFundsToUserSqlCmd
 
 	stmt, err := ts.Prepare(ctx, "add"+prepPart, sqlCmd)
 	if err != nil {
 		return errors.Wrap(err, "MoneyManager.pgMoneyManagerRepo.AddFundsToUser.Prepare()")
 	}
 
-	if _, err := ts.Exec(ctx, stmt.SQL, usr.UserId, fnd.Amount); err != nil {
+	if _, err := ts.Exec(ctx, stmt.SQL, usr, fnd); err != nil {
 		return errors.Wrap(err, "MoneyManager.pgMoneyManagerRepo.AddFundsToUser.Exec()")
 	}
 
@@ -50,23 +45,21 @@ func (e *pgMoneyManagerRepo) AddFundsToUser(ctx context.Context, usr entity.User
 	return nil
 }
 
-func (e *pgMoneyManagerRepo) AddUser(ctx context.Context, usr entity.User, fnd entity.Fund) error {
+func (e *pgMoneyManagerRepo) AddUser(ctx context.Context, usr entity.UserId, fnd entity.Fund) error {
 	ts, err := e.db.Begin(ctx)
 	if err != nil {
 		return errors.Wrap(err, "MoneyManager.pgMoneyManagerRepo.AddFundsToUser.Begin()")
 	}
 
 	prepPart := fmt.Sprintf("%d", time.Now().UnixNano())
-	sqlCmd := `
-		insert into public.user values(default, $1, $2, now(), null)
-	`
+	sqlCmd := AddUserSqlCmd
 
 	stmt, err := ts.Prepare(ctx, "add"+prepPart, sqlCmd)
 	if err != nil {
 		return errors.Wrap(err, "MoneyManager.pgMoneyManagerRepo.AddFundsToUser.Prepare()")
 	}
 
-	if _, err := ts.Exec(ctx, stmt.SQL, usr.UserId, fnd.Amount); err != nil {
+	if _, err := ts.Exec(ctx, stmt.SQL, generateID(), usr, fnd); err != nil {
 		return errors.Wrap(err, "MoneyManager.pgMoneyManagerRepo.AddFundsToUser.Exec()")
 	}
 
@@ -77,22 +70,35 @@ func (e *pgMoneyManagerRepo) AddUser(ctx context.Context, usr entity.User, fnd e
 	return nil
 }
 
-func (e *pgMoneyManagerRepo) GetBalance(ctx context.Context, usr entity.User) (entity.Balance, error) {
-	ub := entity.Balance{}
+func (e *pgMoneyManagerRepo) GetBalance(ctx context.Context, usr entity.UserId) (entity.Balance, error) {
+	sqlCmd := GetUserBalanceSqlCmd
 
-	sqlCmd := `
-		select amount from public.user where user_id = $1
-    `
-
-	row := e.db.QueryRow(ctx, sqlCmd, usr.UserId)
-	var amount uint64
-	err := row.Scan(&amount)
+	row := e.db.QueryRow(ctx, sqlCmd, usr)
+	bal, err := e.ScanBalance(row)
 	if err != nil {
-		return ub, errors.Wrap(err, "MoneyManager.pgMoneyManagerRepo.GetBalance.Scan()")
+		return bal, errors.Wrap(err, "MoneyManager.pgMoneyManagerRepo.GetBalance.Scan()")
 	}
 
-	ub.Available = entity.Fund{Amount: amount}
-	ub.Current = entity.Fund{Amount: amount}
+	return bal, nil
+}
 
-	return ub, nil
+func (e *pgMoneyManagerRepo) ScanBalance(row pgx.Row) (entity.Balance, error) {
+	bal := entity.Balance{}
+
+	availVal := uint64(0)
+	resVal := uint64(0)
+
+	err := row.Scan(&availVal, &resVal)
+	if err != nil {
+		return bal, errors.Wrap(err, "MoneyManager.pgMoneyManagerRepo.GetBalance.Scan()")
+	}
+
+	bal.Available = entity.Fund(availVal)
+	bal.Current = entity.Fund(availVal)
+
+	if resVal != 0 {
+		bal.Current = entity.Fund(availVal + resVal)
+	}
+
+	return bal, nil
 }

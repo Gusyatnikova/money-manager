@@ -1,4 +1,4 @@
-package usecase
+package money_manager
 
 import (
 	"math/big"
@@ -8,23 +8,23 @@ import (
 	"money-manager/money-manager/entity"
 )
 
-func (e *moneyManager) isValidInputFund(val string, unit string) bool {
-	if !e.isValidFundUnit(unit) {
+func isValidInputFund(val string, unit string) bool {
+	if !isValidFundUnit(unit) {
 		return false
 	}
 
 	if unit == RUB {
-		return e.isValidFundInRub(val)
+		return isValidFundInRub(val)
 	} else {
-		return e.isValidFundInKop(val)
+		return isValidFundInKop(val)
 	}
 }
 
-func (e *moneyManager) isValidFundUnit(str string) bool {
+func isValidFundUnit(str string) bool {
 	return str == RUB || str == KOP
 }
 
-func (e *moneyManager) isValidFundInKop(str string) bool {
+func isValidFundInKop(str string) bool {
 	val, err := strconv.ParseUint(str, 10, 64)
 	if err != nil || val == 0 {
 		return false
@@ -33,7 +33,7 @@ func (e *moneyManager) isValidFundInKop(str string) bool {
 	return true
 }
 
-func (e *moneyManager) isValidFundInRub(str string) bool {
+func isValidFundInRub(str string) bool {
 	//fund value without kopeyks
 	val, err := strconv.ParseUint(str, 10, 64)
 
@@ -44,7 +44,7 @@ func (e *moneyManager) isValidFundInRub(str string) bool {
 			return false
 		}
 
-		rubVal, kopVal, ok := e.splitStrToRubAndKop(str)
+		rubVal, kopVal, ok := splitStrToRubAndKop(str)
 		if !ok {
 			return false
 		}
@@ -64,15 +64,11 @@ func (e *moneyManager) isValidFundInRub(str string) bool {
 
 //isValidFundSum compares (cur.Amount + add.Amount) to MaxUint64 and returns:
 //true, if (cur.Amount + add.Amount) <= MaxUint64
-func (e *moneyManager) isValidFundSum(cur entity.Fund, add entity.Fund) bool {
-	bigUintCur := new(big.Int).SetUint64(cur.Amount)
-	bigUintAdd := new(big.Int).SetUint64(add.Amount)
+func isValidFundSum(cur entity.Fund, add entity.Fund) bool {
+	bigUintCur := new(big.Int).SetUint64(uint64(cur))
+	bigUintAdd := new(big.Int).SetUint64(uint64(add))
 	bigUintMax := new(big.Int).SetUint64(^uint64(0))
 
 	cmpRes := bigUintCur.Add(bigUintCur, bigUintAdd).Cmp(bigUintMax)
 	return cmpRes != 1
-}
-
-func (e *moneyManager) isValidUser(usr entity.User) bool {
-	return usr.UserId != ""
 }

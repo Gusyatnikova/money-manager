@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"fmt"
+	"money-manager/money-manager/usecase/money_manager"
 	"os"
 	"os/signal"
 	"syscall"
@@ -36,7 +37,7 @@ func NewMoneyManager(ctx context.Context) usecase.MoneyManagerServer {
 	}
 
 	moneyManagerRepo := postgres.NewPgMoneyManagerRepo(pgConn)
-	uc := usecase.NewMoneyManagerUseCase(moneyManagerRepo)
+	uc := money_manager.NewMoneyManagerUseCase(moneyManagerRepo)
 
 	httpServerCfg := http.ServerConfig{
 		Address: fmt.Sprint(cfg.Http.Host, ":", cfg.Http.Port),
