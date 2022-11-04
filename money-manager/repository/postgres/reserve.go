@@ -11,8 +11,6 @@ import (
 )
 
 const (
-	DebitFundsFromUserSqlCmd = `update public.user set amount = amount - $2 
-                         	where user_id = $1`
 	AddFundsToReserveSqlCmd = `insert into public.reserve (user_id , service_id, order_id, amount)
                                	values (
 									(select id from public.user as u

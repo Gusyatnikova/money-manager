@@ -76,3 +76,56 @@ func (e *moneyManager) Reserve(ctx context.Context, res entity.Reserve, fndVal s
 func (e *moneyManager) AcceptReserve(ctx context.Context, res entity.Reserve, funVal string, funUnit string) error {
 	return nil
 }
+
+func (e *moneyManager) TransferFundsUserToUser(ctx context.Context,
+	usrFromId entity.UserId, usrToId entity.UserId, fndVal string, fndUnit string) error {
+
+	if !isValidUserId(usrFromId) || !isValidUserId(usrToId) {
+		return errors.New("err in moneyManager.TransferFundsUserToUser(): Invalid user")
+	}
+
+	fndToTransfer, err := makeFunds(fndVal, fndUnit)
+	if err != nil {
+		return errors.Wrap(err, "err in moneyManager.DebitFunds.makeFunds():")
+	}
+
+	srcBal, err := e.GetBalance(ctx, usrFromId)
+	if err != nil {
+		return errors.New("err in moneyManager.TransferFundsUserToUser(): Invalid usrSrc balance")
+	}
+
+	if !isValidFundDebit(srcBal.Available, fndToTransfer) {
+		return errors.New("err in moneyManager.TransferFundsUserToUser(): insufficient funds to pay")
+	}
+
+	_, err = e.GetBalance(ctx, usrToId)
+	if err != nil {
+		if e.repo.AddUser(ctx, usrToId, entity.Fund(0)) != nil {
+			return errors.New("err in moneyManager.TransferFundsUserToUser().AddUser: cannot create user")
+		}
+	}
+
+	return e.repo.TransferFundsUserToUser(ctx, usrFromId, usrToId, fndToTransfer)
+}
+func (e *moneyManager) DebitFunds(ctx context.Context, usrId entity.UserId, fndVal string, fndUnit string) error {
+
+	if !isValidUserId(usrId) {
+		return errors.New("err in moneyManager.DebitFunds(): Invalid user")
+	}
+
+	fndToDebit, err := makeFunds(fndVal, fndUnit)
+	if err != nil {
+		return errors.Wrap(err, "err in moneyManager.DebitFunds.makeFunds():")
+	}
+
+	userBal, err := e.repo.GetBalance(ctx, usrId)
+	if err != nil {
+		return errors.Wrap(err, "err in moneyManager.DebitFunds.GetBalance():")
+	}
+
+	if !isValidFundDebit(userBal.Available, fndToDebit) {
+		return errors.New("err in moneyManager.DebitFunds(): insufficient funds")
+	}
+
+	return e.repo.DebitFunds(ctx, usrId, fndToDebit)
+}

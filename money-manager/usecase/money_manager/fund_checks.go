@@ -72,3 +72,7 @@ func isValidFundSum(cur entity.Fund, add entity.Fund) bool {
 	cmpRes := bigUintCur.Add(bigUintCur, bigUintAdd).Cmp(bigUintMax)
 	return cmpRes != 1
 }
+
+func isValidFundDebit(cur entity.Fund, debit entity.Fund) bool {
+	return cur >= debit
+}

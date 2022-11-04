@@ -26,6 +26,13 @@ type fundsReqBody struct {
 	Unit   string `json:"unit"`
 }
 
+type transferFundsReqBody struct {
+	FromUserId string `json:"from_user_id"`
+	ToUserId   string `json:"to_user_id"`
+	Amount     string `json:"amount"`
+	Unit       string `json:"unit"`
+}
+
 func (e *ServerHandler) GetBalance(eCtx echo.Context) error {
 	usr := eCtx.QueryParam("user_id")
 
@@ -48,8 +55,48 @@ func (e *ServerHandler) AddFunds(eCtx echo.Context) error {
 	return e.uc.AddFundsToUser(eCtx.Request().Context(), entity.UserId(reqBody.UserId), reqBody.Amount, reqBody.Unit)
 }
 
+func (e *ServerHandler) DebitFunds(eCtx echo.Context) error {
+	reqBody, err := parseUserAmountBody(eCtx)
+	if err != nil {
+		return noContentErrResponse(eCtx, http.StatusBadRequest,
+			fmt.Sprintf("err in ServerHandler.DebitFunds.parseUserAmountBody(): %v", err))
+	}
+
+	return e.uc.DebitFunds(eCtx.Request().Context(), entity.UserId(reqBody.UserId), reqBody.Amount, reqBody.Unit)
+}
+
+func (e *ServerHandler) TransferFunds(eCtx echo.Context) error {
+	reqBody, err := parseUserTransferReqBody(eCtx)
+	if err != nil {
+		return noContentErrResponse(eCtx, http.StatusBadRequest,
+			fmt.Sprintf("err in ServerHandler.TransferFunds.parseUserTransferReqBody(): %v", err))
+	}
+
+	return e.uc.TransferFundsUserToUser(
+		eCtx.Request().Context(),
+		entity.UserId(reqBody.FromUserId),
+		entity.UserId(reqBody.ToUserId),
+		reqBody.Amount,
+		reqBody.Unit)
+}
+
 func parseUserAmountBody(eCtx echo.Context) (fundsReqBody, error) {
 	frBody := fundsReqBody{}
+
+	if !isRequestBodyIsJSON(eCtx) {
+		return frBody, errors.New("Content-Type application/json is missing")
+	}
+
+	err := eCtx.Bind(&frBody)
+	if err != nil {
+		return frBody, errors.Wrap(err, "Unable parse request body")
+	}
+
+	return frBody, nil
+}
+
+func parseUserTransferReqBody(eCtx echo.Context) (transferFundsReqBody, error) {
+	frBody := transferFundsReqBody{}
 
 	if !isRequestBodyIsJSON(eCtx) {
 		return frBody, errors.New("Content-Type application/json is missing")

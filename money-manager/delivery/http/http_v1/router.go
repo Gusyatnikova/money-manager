@@ -15,9 +15,12 @@ func NewServerHandler(e *echo.Echo, useCase usecase.MoneyManagerUseCase) {
 		uc: useCase,
 	}
 
-	e.GET("money-manager/users/balance", h.GetBalance)
 	e.POST("money-manager/users/balance", h.AddFunds)
+	e.GET("money-manager/users/balance", h.GetBalance)
+	e.PATCH("money-manager/users/balance", h.DebitFunds)
 
-	e.POST("money-manager/users/balance/reserve", h.AddReserve)
-	e.DELETE("money-manager/users/balance/reserve", h.AcceptReserve)
+	e.POST("money-manager/transfers", h.TransferFunds)
+
+	e.POST("money-manager/reserves", h.AddReserve)
+	e.PATCH("money-manager/reserves", h.AcceptReserve)
 }

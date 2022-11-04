@@ -11,13 +11,15 @@ import (
 	"money-manager/money-manager/entity"
 )
 
+//use on conflict update?
 const (
 	AddUserSqlCmd        = `insert into public.user values($1, $2, $3, now(), null)`
 	AddFundsToUserSqlCmd = `update public.user set (amount, updated) = (public.user.amount + $2, now())
-								where user_id = $1`
+							where user_id = $1`
 	GetUserBalanceSqlCmd = `select min(u.amount), coalesce(sum(r.amount), 0) from public.user u
-								left join public.reserve r on u.id = r.user_id
+							left join public.reserve r on u.id = r.user_id
 							where u.user_id = $1 group by u.id`
+	DebitFundsFromUserSqlCmd = `update public.user set amount = amount - $2 where user_id = $1`
 )
 
 func (e *pgMoneyManagerRepo) AddFundsToUser(ctx context.Context, usr entity.UserId, fnd entity.Fund) error {
@@ -80,6 +82,75 @@ func (e *pgMoneyManagerRepo) GetBalance(ctx context.Context, usr entity.UserId) 
 	}
 
 	return bal, nil
+}
+
+func (e *pgMoneyManagerRepo) TransferFundsUserToUser(ctx context.Context,
+	usrFrom entity.UserId, usrTo entity.UserId, fnd entity.Fund) error {
+
+	ts, err := e.db.Begin(ctx)
+	if err != nil {
+		return errors.Wrap(err, "MoneyManager.pgMoneyManagerRepo.TransferFundsUserToUser.Begin()")
+	}
+
+	//subtract amount from usrFrom
+	prepPart := fmt.Sprintf("%d", time.Now().UnixNano())
+	sqlCmd := DebitFundsFromUserSqlCmd
+
+	stmtUser, err := ts.Prepare(ctx, "add"+prepPart, sqlCmd)
+	if err != nil {
+		return errors.Wrap(err, "MoneyManager.pgMoneyManagerRepo.TransferFundsUserToUser.Prepare() for DebitFundsFromUserSqlCmd")
+	}
+
+	if _, err := ts.Exec(ctx, stmtUser.SQL, usrFrom, fnd); err != nil {
+		return errors.Wrap(err, "MoneyManager.pgMoneyManagerRepo.TransferFundsUserToUser.Exec() for DebitFundsFromUserSqlCmd")
+	}
+
+	//add amount to usrTo
+	prepPart = fmt.Sprintf("%d", time.Now().UnixNano())
+	sqlCmd = AddFundsToUserSqlCmd
+
+	stmtReserve, err := ts.Prepare(ctx, "add"+prepPart, sqlCmd)
+	if err != nil {
+		return errors.Wrap(err, "MoneyManager.pgMoneyManagerRepo.TransferFundsUserToUser.Prepare() for AddFundsToReserveSqlCmd")
+	}
+
+	if _, err := ts.Exec(ctx, stmtReserve.SQL, usrTo, fnd); err != nil {
+		return errors.Wrap(err, "MoneyManager.pgMoneyManagerRepo.TransferFundsUserToUser.Exec() for AddFundsToReserveSqlCmd")
+	}
+
+	if err := ts.Commit(ctx); err != nil {
+		return errors.Wrap(err, "MoneyManager.pgMoneyManagerRepo.TransferFundsUserToUser.Commit()")
+	}
+
+	return nil
+
+	return nil
+}
+
+func (e *pgMoneyManagerRepo) DebitFunds(ctx context.Context, usrId entity.UserId, fnd entity.Fund) error {
+
+	ts, err := e.db.Begin(ctx)
+	if err != nil {
+		return errors.Wrap(err, "MoneyManager.pgMoneyManagerRepo.DebitFunds.Begin()")
+	}
+
+	prepPart := fmt.Sprintf("%d", time.Now().UnixNano())
+	sqlCmd := DebitFundsFromUserSqlCmd
+
+	stmt, err := ts.Prepare(ctx, "add"+prepPart, sqlCmd)
+	if err != nil {
+		return errors.Wrap(err, "MoneyManager.pgMoneyManagerRepo.DebitFunds.Prepare()")
+	}
+
+	if _, err := ts.Exec(ctx, stmt.SQL, usrId, fnd); err != nil {
+		return errors.Wrap(err, "MoneyManager.pgMoneyManagerRepo.DebitFunds.Exec()")
+	}
+
+	if err := ts.Commit(ctx); err != nil {
+		return errors.Wrap(err, "MoneyManager.pgMoneyManagerRepo.DebitFunds.Commit()")
+	}
+
+	return nil
 }
 
 func (e *pgMoneyManagerRepo) ScanBalance(row pgx.Row) (entity.Balance, error) {
