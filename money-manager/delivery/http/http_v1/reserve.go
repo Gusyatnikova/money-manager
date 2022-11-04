@@ -14,8 +14,7 @@ type addReserveReqBody struct {
 	UserId    string `json:"user_id"`
 	ServiceId string `json:"service_id"`
 	OrderId   string `json:"order_id"`
-	Amount    string `json:"amount"`
-	Unit      string `json:"unit"`
+	Money     money  `json:"funds"`
 }
 
 func (e *ServerHandler) AddReserve(eCtx echo.Context) error {
@@ -25,7 +24,7 @@ func (e *ServerHandler) AddReserve(eCtx echo.Context) error {
 			fmt.Sprintf("err in ServerHandler.AddReserve.parseAddReserveReqBody(): %v", err))
 	}
 
-	return e.uc.Reserve(eCtx.Request().Context(), reserveReqBodyToReserve(reqBody), reqBody.Amount, reqBody.Unit)
+	return e.uc.Reserve(eCtx.Request().Context(), reserveReqBodyToReserve(reqBody), reqBody.Money.Value, reqBody.Money.Unit)
 }
 
 func (e *ServerHandler) AcceptReserve(eCtx echo.Context) error {

@@ -10,27 +10,30 @@ import (
 )
 
 type balance struct {
-	CurAmount   entity.Fund `json:"current_amount"`
-	AvailAmount entity.Fund `json:"available_amount"`
-	Unit        string      `json:"unit"`
+	CurMoney   entity.Fund `json:"current_amount"`
+	AvailMoney entity.Fund `json:"available_amount"`
+	Unit       string      `json:"unit"`
 }
 
 type userBalanceResp struct {
 	UserId string  `json:"user_id"`
-	Ub     balance `json:"balance"`
+	Ub     balance `json:"amount"`
+}
+
+type money struct {
+	Value string `json:"amount"`
+	Unit  string `json:"unit"`
 }
 
 type fundsReqBody struct {
 	UserId string `json:"user_id"`
-	Amount string `json:"amount"`
-	Unit   string `json:"unit"`
+	Money  money  `json:"funds"`
 }
 
 type transferFundsReqBody struct {
 	FromUserId string `json:"from_user_id"`
 	ToUserId   string `json:"to_user_id"`
-	Amount     string `json:"amount"`
-	Unit       string `json:"unit"`
+	Money      money  `json:"funds"`
 }
 
 func (e *ServerHandler) GetBalance(eCtx echo.Context) error {
@@ -46,23 +49,23 @@ func (e *ServerHandler) GetBalance(eCtx echo.Context) error {
 }
 
 func (e *ServerHandler) AddFunds(eCtx echo.Context) error {
-	reqBody, err := parseUserAmountBody(eCtx)
+	reqBody, err := parseUserMoneyBody(eCtx)
 	if err != nil {
 		return noContentErrResponse(eCtx, http.StatusBadRequest,
-			fmt.Sprintf("err in ServerHandler.AddFundsToUser.parseUserAmountBody(): %v", err))
+			fmt.Sprintf("err in ServerHandler.AddFundsToUser.parseUserMoneyBody(): %v", err))
 	}
 
-	return e.uc.AddFundsToUser(eCtx.Request().Context(), entity.UserId(reqBody.UserId), reqBody.Amount, reqBody.Unit)
+	return e.uc.AddFundsToUser(eCtx.Request().Context(), entity.UserId(reqBody.UserId), reqBody.Money.Value, reqBody.Money.Unit)
 }
 
 func (e *ServerHandler) DebitFunds(eCtx echo.Context) error {
-	reqBody, err := parseUserAmountBody(eCtx)
+	reqBody, err := parseUserMoneyBody(eCtx)
 	if err != nil {
 		return noContentErrResponse(eCtx, http.StatusBadRequest,
-			fmt.Sprintf("err in ServerHandler.DebitFunds.parseUserAmountBody(): %v", err))
+			fmt.Sprintf("err in ServerHandler.DebitFunds.parseUserMoneyBody(): %v", err))
 	}
 
-	return e.uc.DebitFunds(eCtx.Request().Context(), entity.UserId(reqBody.UserId), reqBody.Amount, reqBody.Unit)
+	return e.uc.DebitFunds(eCtx.Request().Context(), entity.UserId(reqBody.UserId), reqBody.Money.Value, reqBody.Money.Unit)
 }
 
 func (e *ServerHandler) TransferFunds(eCtx echo.Context) error {
@@ -76,11 +79,11 @@ func (e *ServerHandler) TransferFunds(eCtx echo.Context) error {
 		eCtx.Request().Context(),
 		entity.UserId(reqBody.FromUserId),
 		entity.UserId(reqBody.ToUserId),
-		reqBody.Amount,
-		reqBody.Unit)
+		reqBody.Money.Value,
+		reqBody.Money.Unit)
 }
 
-func parseUserAmountBody(eCtx echo.Context) (fundsReqBody, error) {
+func parseUserMoneyBody(eCtx echo.Context) (fundsReqBody, error) {
 	frBody := fundsReqBody{}
 
 	if !isRequestBodyIsJSON(eCtx) {
@@ -114,9 +117,9 @@ func makeUserBalanceResponse(usr entity.UserId, bal entity.Balance) userBalanceR
 	return userBalanceResp{
 		UserId: string(usr),
 		Ub: balance{
-			CurAmount:   bal.Current,
-			AvailAmount: bal.Available,
-			Unit:        "kop",
+			CurMoney:   bal.Current,
+			AvailMoney: bal.Available,
+			Unit:       "kop",
 		},
 	}
 }
