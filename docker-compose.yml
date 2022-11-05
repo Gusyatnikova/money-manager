@@ -1,4 +1,4 @@
-version: '3.7'
+version: '2.9'
 
 services:
   money-manager:
@@ -11,17 +11,29 @@ services:
     ports:
       - "8888:8888"
     depends_on:
-      - postgresdb
+      postgresdb:
+        condition: service_healthy
+    networks:
+      - money-manager-net
   postgresdb:
     image: postgres
-    container_name: moneyManager_postgres
-    env_file:
-      - .env
+    container_name: money_manager_postgres
     environment:
-      PGDATA: /usr/local/pg/data_new/money_manager
+      PGDATA: /usr/local/pg/data/money_manager
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     volumes:
-      - pgdata:/usr/local/pg/data_new/money_manager
-    ports:
-      - "5432:5432"
-volumes:
-  pgdata:
+      - ./pkg/repository/postgres/init_db.sql:/docker-entrypoint-initdb.d/init_db.sql
+    networks:
+      - money-manager-net
+    restart: always
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}" ]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+
+networks:
+  money-manager-net:
+    driver: bridge
