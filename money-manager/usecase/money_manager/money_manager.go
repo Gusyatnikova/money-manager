@@ -92,16 +92,20 @@ func (e *moneyManager) TransferFundsUserToUser(ctx context.Context,
 
 	srcBal, err := e.GetBalance(ctx, usrFromId)
 	if err != nil {
-		return errors.New("err in moneyManager.TransferFundsUserToUser(): Invalid usrSrc balance")
+		return errors.New("err in moneyManager.TransferFundsUserToUser(): Invalid sender user balance")
 	}
 
 	if !isValidFundDebit(srcBal.Available, fndToTransfer) {
 		return errors.New("err in moneyManager.TransferFundsUserToUser(): insufficient funds to pay")
 	}
 
-	_, err = e.GetBalance(ctx, usrToId)
+	dstBal, err := e.GetBalance(ctx, usrToId)
 	if err != nil {
 		return errors.New(fmt.Sprintf("err in moneyManager.TransferFundsUserToUser(): no user with id: %s", usrToId))
+	}
+
+	if !isValidFundSum(balanceToFund(dstBal), fndToTransfer) {
+		return errors.New("err in moneyManager.TransferFundsUserToUser(): Invalid receiver user balance")
 	}
 
 	return e.repo.TransferFundsUserToUser(ctx, usrFromId, usrToId, fndToTransfer)
