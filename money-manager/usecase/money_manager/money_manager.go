@@ -2,6 +2,7 @@ package money_manager
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/pkg/errors"
 
@@ -100,9 +101,7 @@ func (e *moneyManager) TransferFundsUserToUser(ctx context.Context,
 
 	_, err = e.GetBalance(ctx, usrToId)
 	if err != nil {
-		if e.repo.AddUser(ctx, usrToId, entity.Fund(0)) != nil {
-			return errors.New("err in moneyManager.TransferFundsUserToUser().AddUser: cannot create user")
-		}
+		return errors.New(fmt.Sprintf("err in moneyManager.TransferFundsUserToUser(): no user with id: %s", usrToId))
 	}
 
 	return e.repo.TransferFundsUserToUser(ctx, usrFromId, usrToId, fndToTransfer)
