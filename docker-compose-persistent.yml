@@ -24,6 +24,7 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - ./pkg/repository/postgres/init_db.sql:/docker-entrypoint-initdb.d/init_db.sql
+      - pgdata:/var/lib/postgresql/money_manager_data
     networks:
       - money-manager-net
     restart: always
@@ -33,3 +34,5 @@ services:
 networks:
   money-manager-net:
     driver: bridge
+volumes:
+  pgdata: {}
