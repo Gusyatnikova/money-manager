@@ -19,21 +19,20 @@ services:
     image: postgres
     container_name: money_manager_postgres
     environment:
-      PGDATA: /usr/local/pg/data/money_manager
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - ./pkg/repository/postgres/init_db.sql:/docker-entrypoint-initdb.d/init_db.sql
+      - pgdata:/var/lib/postgresql/data
     networks:
       - money-manager-net
     restart: always
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}" ]
-      interval: 10s
-      timeout: 10s
-      retries: 5
 
 networks:
   money-manager-net:
     driver: bridge
+volumes:
+  pgdata: {}
