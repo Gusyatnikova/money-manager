@@ -63,7 +63,9 @@ func isValidFundInRub(str string) bool {
 }
 
 //isValidFundSum compares (cur.Amount + add.Amount) to MaxUint64 and returns:
+//
 //true, if (cur.Amount + add.Amount) <= MaxUint64
+//false, otherwise
 func isValidFundSum(cur entity.Fund, add entity.Fund) bool {
 	bigUintCur := new(big.Int).SetUint64(uint64(cur))
 	bigUintAdd := new(big.Int).SetUint64(uint64(add))
@@ -73,6 +75,7 @@ func isValidFundSum(cur entity.Fund, add entity.Fund) bool {
 	return cmpRes != 1
 }
 
-func isValidFundDebit(cur entity.Fund, debit entity.Fund) bool {
-	return cur >= debit
+//isValidDebit checks if curAmount >= toDebit and returns true if it is, otherwise false
+func isValidDebit(curAmount entity.Fund, toDebit entity.Fund) bool {
+	return curAmount >= toDebit
 }

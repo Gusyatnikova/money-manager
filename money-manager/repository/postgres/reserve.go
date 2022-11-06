@@ -2,8 +2,8 @@ package postgres
 
 import (
 	"context"
-	"fmt"
-	"time"
+	"github.com/jackc/pgx/v4"
+	"money-manager/money-manager/repository"
 
 	"github.com/pkg/errors"
 
@@ -11,54 +11,108 @@ import (
 )
 
 const (
-	AddFundsToReserveSqlCmd = `insert into public.reserve (user_id , service_id, order_id, amount)
-                               	values (
-									(select id from public.user as u
-									where u.user_id = $1
-									), $2, $3, $4
-								)`
-	AcceptReserveFundsSqlCmd = `rec`
+	ReserveMoneySqlCmd = `insert into public.reserve (user_id , service_id, order_id, amount)
+                               values ($1, $2, $3, $4)`
+
+	DebitMoneyFromReserveSqlCmd = `update public.reserve set amount = amount - $4 
+									where user_id = $1 and service_id = $2 and order_id = $3 returning amount`
+
+	AddMoneyToUserFromReserveSqlCmd = `update public.user as u 
+                                       	set (amount, updated) = (u.amount + r.amount, now()) 
+										from (select amount from reserve where user_id = $1 and service_id = $2 and order_id = $3) as r 
+										where id = $1`
+
+	DeleteReserveSqlCmd = `delete from public.reserve 
+							where user_id = $1 and service_id = $2 and order_id = $3`
+
+	GetAmountFromReserveSqlCmd = `select amount from public.reserve 
+									where user_id = $1 and service_id = $2 and order_id = $3`
 )
 
-func (e *pgMoneyManagerRepo) AddReserve(ctx context.Context, res entity.Reserve) error {
-	ts, err := e.db.Begin(ctx)
-	if err != nil {
-		return errors.Wrap(err, "MoneyManager.pgMoneyManagerRepo.AddReserve.Begin()")
+func (e *pgMoneyManagerRepo) ReserveMoney(ctx context.Context, res entity.Reserve) error {
+	reserveMoneyFn := func(tx pgx.Tx) error {
+		//subtract amount from public.user
+		if _, err := tx.Exec(ctx, DebitMoneyFromUserSqlCmd, res.UserId, res.Amount); err != nil {
+			return errors.Wrap(err, "MoneyManager.pgMoneyManagerRepo.ReserveMoney.Exec() for DebitMoneyFromUserSqlCmd")
+		}
+
+		//add amount to public.reserve
+		_, err := tx.Exec(ctx, ReserveMoneySqlCmd, res.UserId, res.ServiceId, res.OrderId, res.Amount)
+		return errors.Wrap(err, "MoneyManager.pgMoneyManagerRepo.ReserveMoney.Exec() for ReserveMoneySqlCmd")
 	}
 
-	//subtract amount from public.user
-	prepPart := fmt.Sprintf("%d", time.Now().UnixNano())
-	sqlCmd := DebitFundsFromUserSqlCmd
+	err := e.RunTx(ctx, reserveMoneyFn)
 
-	stmtUser, err := ts.Prepare(ctx, "add"+prepPart, sqlCmd)
-	if err != nil {
-		return errors.Wrap(err, "MoneyManager.pgMoneyManagerRepo.AddReserve.Prepare() for DebitFundsFromUserSqlCmd")
-	}
-
-	if _, err := ts.Exec(ctx, stmtUser.SQL, res.UserId, res.Amount); err != nil {
-		return errors.Wrap(err, "MoneyManager.pgMoneyManagerRepo.AddReserve.Exec() for DebitFundsFromUserSqlCmd")
-	}
-
-	//add amount to public.reserve
-	prepPart = fmt.Sprintf("%d", time.Now().UnixNano())
-	sqlCmd = AddFundsToReserveSqlCmd
-
-	stmtReserve, err := ts.Prepare(ctx, "add"+prepPart, sqlCmd)
-	if err != nil {
-		return errors.Wrap(err, "MoneyManager.pgMoneyManagerRepo.AddReserve.Prepare() for AddFundsToReserveSqlCmd")
-	}
-
-	if _, err := ts.Exec(ctx, stmtReserve.SQL, res.UserId, res.ServiceId, res.OrderId, res.Amount); err != nil {
-		return errors.Wrap(err, "MoneyManager.pgMoneyManagerRepo.AddReserve.Exec() for AddFundsToReserveSqlCmd")
-	}
-
-	if err := ts.Commit(ctx); err != nil {
-		return errors.Wrap(err, "MoneyManager.pgMoneyManagerRepo.AddReserve.Commit()")
-	}
-
-	return nil
+	return errors.Wrap(err, "Err in: pgMoneyManagerRepo.ReserveMoney.RunTx()")
 }
 
-func (e *pgMoneyManagerRepo) AcceptReserve(ctx context.Context, resId entity.ReserveId) error {
-	return nil
+func (e *pgMoneyManagerRepo) GetReserve(ctx context.Context, res entity.Reserve) (entity.Reserve, error) {
+	var (
+		resAmount uint64
+		newRes    entity.Reserve
+	)
+	row := e.db.QueryRow(ctx, GetAmountFromReserveSqlCmd, res.UserId, res.ServiceId, res.OrderId)
+
+	err := row.Scan(&resAmount)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return newRes, repository.ErrNotFound
+		}
+	}
+
+	newRes.Amount = entity.Fund(resAmount)
+	return newRes, errors.Wrap(err, "Err in: pgMoneyManagerRepo.GetReserve.Scan(): ")
+}
+
+func (e *pgMoneyManagerRepo) AcceptReserve(ctx context.Context, res entity.Reserve) error {
+	acceptReserveFn := func(tx pgx.Tx) error {
+		//subtract amount from public.reserve
+		newAmount := uint64(0)
+
+		err := tx.QueryRow(ctx, DebitMoneyFromReserveSqlCmd, res.UserId, res.ServiceId, res.OrderId, res.Amount).Scan(&newAmount)
+		if err != nil {
+			return errors.Wrap(err, "MoneyManager.pgMoneyManagerRepo.AcceptReserve.Exec() for DebitMoneyFromReserveSqlCmd")
+		}
+
+		//if reserve still have money return it to user
+		if newAmount > 0 {
+			if _, err := tx.Exec(ctx, AddMoneyToUserSqlCmd, res.UserId, newAmount); err != nil {
+				return errors.Wrap(err, "MoneyManager.pgMoneyManagerRepo.AcceptReserve.Exec() for AddMoneyToUserFromReserveSqlCmd")
+			}
+		}
+
+		//delete reserve
+		if _, err := tx.Exec(ctx, DeleteReserveSqlCmd, res.UserId, res.ServiceId, res.OrderId); err != nil {
+			return errors.Wrap(err, "MoneyManager.pgMoneyManagerRepo.AcceptReserve.Exec() for DeleteReserveSqlCmd")
+		}
+
+		//todo: add record to public.report
+		//_, err := tx.Exec(ctx, ReserveMoneySqlCmd, res.UserId, res.ServiceId, res.OrderId, res.Amount)
+		return errors.Wrap(err, "MoneyManager.pgMoneyManagerRepo.AcceptReserve")
+	}
+
+	err := e.RunTx(ctx, acceptReserveFn)
+
+	return errors.Wrap(err, "Err in: pgMoneyManagerRepo.ReserveMoney.RunTx()")
+}
+
+func (e *pgMoneyManagerRepo) CancelReserve(ctx context.Context, res entity.Reserve) error {
+	cancelReserveFn := func(tx pgx.Tx) error {
+		//add money from reserve to user
+		_, err := tx.Exec(ctx, AddMoneyToUserFromReserveSqlCmd, res.UserId, res.ServiceId, res.OrderId)
+		if err != nil {
+			return errors.Wrap(err, "MoneyManager.pgMoneyManagerRepo.CancelReserve.Exec() for AddMoneyToUserFromReserveSqlCmd")
+		}
+
+		//delete reserve
+		if _, err := tx.Exec(ctx, DeleteReserveSqlCmd, res.UserId, res.ServiceId, res.OrderId); err != nil {
+			return errors.Wrap(err, "MoneyManager.pgMoneyManagerRepo.CancelReserve.Exec() for DeleteReserveSqlCmd")
+		}
+
+		return errors.Wrap(err, "MoneyManager.pgMoneyManagerRepo.CancelReserve")
+	}
+
+	err := e.RunTx(ctx, cancelReserveFn)
+
+	return errors.Wrap(err, "Err in: pgMoneyManagerRepo.CancelReserve.RunTx()")
 }
