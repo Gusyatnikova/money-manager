@@ -14,6 +14,7 @@ type MoneyManagerRepo interface {
 	GetBalance(context.Context, entity.UserId) (entity.Balance, error)
 
 	ReserveMoney(ctx context.Context, res entity.Reserve) error
-	RevokeReserve(ctx context.Context, res entity.Reserve) error
-	AcceptReserve(ctx context.Context, resId entity.ReserveId) error
+	GetReserve(ctx context.Context, res entity.Reserve) (entity.Reserve, error)
+	CancelReserve(ctx context.Context, res entity.Reserve) error
+	AcceptReserve(ctx context.Context, res entity.Reserve) error
 }

@@ -66,6 +66,7 @@ func (e *ServerHandler) AddMoney(eCtx echo.Context) error {
 
 	eCtx.QueryParams().Set(UserIdParamName, reqBody.UserId)
 
+	//todo: get this data from e.uc.AddMoneyToUser return
 	return e.GetBalance(eCtx)
 }
 

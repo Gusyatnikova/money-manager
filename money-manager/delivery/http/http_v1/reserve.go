@@ -2,42 +2,76 @@ package http_v1
 
 import (
 	"github.com/labstack/echo/v4"
-
 	"money-manager/money-manager/delivery"
 	"money-manager/money-manager/entity"
 )
 
-type addReserveReqBody struct {
+type ReserveKey struct {
 	UserId    string `json:"user_id"`
 	ServiceId string `json:"service_id"`
 	OrderId   string `json:"order_id"`
-	Money     money  `json:"funds"`
+}
+
+type reserveReqBody struct {
+	ReserveKey ReserveKey `json:"reserve_id"`
+	Money      money      `json:"funds"`
 }
 
 func (e *ServerHandler) AddReserve(eCtx echo.Context) error {
-	reqBody, err := parseAddReserveReqBody(eCtx)
+	reqBody, err := parseReserveReqBody(eCtx)
 	if err != nil {
 		return e.noContentErrResponse(eCtx, err)
 	}
 
-	return e.uc.ReserveMoney(eCtx.Request().Context(), reserveReqBodyToReserve(reqBody), reqBody.Money.Value, reqBody.Money.Unit)
-}
-
-func (e *ServerHandler) RevokeReserve(eCtx echo.Context) error {
-	reqBody, err := parseAddReserveReqBody(eCtx)
+	err = e.uc.ReserveMoney(eCtx.Request().Context(), reserveReqBodyToReserve(reqBody), reqBody.Money.Value, reqBody.Money.Unit)
 	if err != nil {
 		return e.noContentErrResponse(eCtx, err)
 	}
 
-	return e.uc.RevokeReserve(eCtx.Request().Context(), reserveReqBodyToReserve(reqBody), reqBody.Money.Value, reqBody.Money.Unit)
+	eCtx.QueryParams().Set(UserIdParamName, reqBody.ReserveKey.UserId)
+
+	//todo: get this data from e.uc.AddMoneyToUser return
+	return e.GetBalance(eCtx)
 }
 
-func (e *ServerHandler) AcceptReserve(eCtx echo.Context) error {
+func (e *ServerHandler) CancelReserve(eCtx echo.Context) error {
+	reqBody, err := parseCancelReserveReqBody(eCtx)
+	if err != nil {
+		return e.noContentErrResponse(eCtx, err)
+	}
+
+	reserveReqBody := reserveReqBody{
+		ReserveKey: reqBody,
+		Money:      money{},
+	}
+
+	err = e.uc.CancelReserve(eCtx.Request().Context(), reserveReqBodyToReserve(reserveReqBody))
+	if err != nil {
+		return e.noContentErrResponse(eCtx, err)
+	}
+
 	return nil
 }
 
-func parseAddReserveReqBody(eCtx echo.Context) (addReserveReqBody, error) {
-	addReserveBody := addReserveReqBody{}
+func (e *ServerHandler) AcceptReserve(eCtx echo.Context) error {
+	reqBody, err := parseReserveReqBody(eCtx)
+	if err != nil {
+		return e.noContentErrResponse(eCtx, err)
+	}
+
+	err = e.uc.AcceptReserve(eCtx.Request().Context(), reserveReqBodyToReserve(reqBody), reqBody.Money.Value, reqBody.Money.Unit)
+	if err != nil {
+		return e.noContentErrResponse(eCtx, err)
+	}
+
+	eCtx.QueryParams().Set(UserIdParamName, reqBody.ReserveKey.UserId)
+
+	//todo: get this data from e.uc.AddMoneyToUser return
+	return e.GetBalance(eCtx)
+}
+
+func parseReserveReqBody(eCtx echo.Context) (reserveReqBody, error) {
+	addReserveBody := reserveReqBody{}
 
 	if !isRequestBodyIsJSON(eCtx) {
 		return addReserveBody, delivery.ErrBadContentType
@@ -51,10 +85,25 @@ func parseAddReserveReqBody(eCtx echo.Context) (addReserveReqBody, error) {
 	return addReserveBody, nil
 }
 
-func reserveReqBodyToReserve(res addReserveReqBody) entity.Reserve {
+func parseCancelReserveReqBody(eCtx echo.Context) (ReserveKey, error) {
+	cancelReserveBody := ReserveKey{}
+
+	if !isRequestBodyIsJSON(eCtx) {
+		return cancelReserveBody, delivery.ErrBadContentType
+	}
+
+	err := eCtx.Bind(&cancelReserveBody)
+	if err != nil {
+		return cancelReserveBody, delivery.ErrBadRequestBody
+	}
+
+	return cancelReserveBody, nil
+}
+
+func reserveReqBodyToReserve(res reserveReqBody) entity.Reserve {
 	return entity.Reserve{
-		UserId:    entity.UserId(res.UserId),
-		ServiceId: entity.ServiceId(res.ServiceId),
-		OrderId:   entity.OrderId(res.OrderId),
+		UserId:    entity.UserId(res.ReserveKey.UserId),
+		ServiceId: entity.ServiceId(res.ReserveKey.ServiceId),
+		OrderId:   entity.OrderId(res.ReserveKey.OrderId),
 	}
 }

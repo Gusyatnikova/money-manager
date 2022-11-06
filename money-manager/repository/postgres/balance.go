@@ -69,7 +69,7 @@ func (e *pgMoneyManagerRepo) TransferMoneyUserToUser(ctx context.Context,
 		//add amount to usrTo
 		_, err := tx.Exec(ctx, AddMoneyToUserSqlCmd, usrTo, fnd)
 
-		return errors.Wrap(err, "Err in: pgMoneyManagerRepo.TransferMoneyUserToUser.Exec() for AddMoneyToReserveSqlCmd")
+		return errors.Wrap(err, "Err in: pgMoneyManagerRepo.TransferMoneyUserToUser.Exec() for AddMoneyToUserSqlCmd")
 	}
 
 	if err := e.RunTx(ctx, transferMoneyFn); err != nil {

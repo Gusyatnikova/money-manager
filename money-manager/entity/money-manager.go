@@ -1,5 +1,7 @@
 package entity
 
+import "github.com/oklog/ulid/v2"
+
 type Fund uint64
 
 type UserId string
@@ -20,4 +22,8 @@ type Reserve struct {
 	ServiceId ServiceId
 	OrderId   OrderId
 	Amount    Fund
+}
+
+type Transaction struct {
+	id ulid.ULID
 }

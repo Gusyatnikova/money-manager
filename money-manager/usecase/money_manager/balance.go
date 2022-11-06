@@ -26,16 +26,16 @@ func (e *moneyManager) AddMoneyToUser(ctx context.Context, usrId entity.UserId, 
 
 	fndToAdd, err := makeMoney(fndVal, fndUnit)
 	if err != nil {
-		return usecase.ErrIncorrectMoney
+		return usecase.ErrInvalidMoney
 	}
 
 	//todo:use returns in database
 	userBal, err := e.repo.GetBalance(ctx, usrId)
 	if err != nil {
-		if detectNotFoundErr(err) != nil {
+		if replaceNotFoundErr(err) != nil {
 			err = e.repo.AddUser(ctx, usrId, fndToAdd)
 		}
-		return errors.Wrap(detectNotFoundErr(err), "err in moneyManager.AddMoneyToUser().repo.GetBalance:")
+		return errors.Wrap(replaceNotFoundErr(err), "err in moneyManager.AddMoneyToUser().repo.GetBalance:")
 	}
 
 	if !isValidFundSum(balanceToFund(userBal), fndToAdd) {
@@ -57,7 +57,7 @@ func (e *moneyManager) GetBalance(ctx context.Context, usrId entity.UserId) (ent
 
 	bal, err := e.repo.GetBalance(ctx, usrId)
 
-	return bal, errors.Wrap(detectNotFoundErr(err), "err in moneyManager.GetBalance().repo.GetBalance:")
+	return bal, errors.Wrap(replaceNotFoundErr(err), "err in moneyManager.GetBalance().repo.GetBalance:")
 }
 
 func (e *moneyManager) DebitMoney(ctx context.Context, usrId entity.UserId, fndVal string, fndUnit string) error {
@@ -67,12 +67,12 @@ func (e *moneyManager) DebitMoney(ctx context.Context, usrId entity.UserId, fndV
 
 	fndToDebit, err := makeMoney(fndVal, fndUnit)
 	if err != nil {
-		return usecase.ErrIncorrectMoney
+		return usecase.ErrInvalidMoney
 	}
 
 	userBal, err := e.repo.GetBalance(ctx, usrId)
 	if err != nil {
-		return errors.Wrap(detectNotFoundErr(err), "err in moneyManager.DebitMoney.GetBalance():")
+		return errors.Wrap(replaceNotFoundErr(err), "err in moneyManager.DebitMoney.GetBalance():")
 	}
 
 	if !isValidDebit(userBal.Available, fndToDebit) {
@@ -94,12 +94,12 @@ func (e *moneyManager) TransferMoneyUserToUser(ctx context.Context,
 
 	fndToTransfer, err := makeMoney(fndVal, fndUnit)
 	if err != nil {
-		return usecase.ErrIncorrectMoney
+		return usecase.ErrInvalidMoney
 	}
 
 	srcBal, err := e.GetBalance(ctx, usrFromId)
 	if err != nil {
-		return errors.Wrap(detectNotFoundErr(err), "err in moneyManager.TransferMoneyUserToUser.GetBalance():")
+		return errors.Wrap(replaceNotFoundErr(err), "err in moneyManager.TransferMoneyUserToUser.GetBalance():")
 	}
 
 	if !isValidDebit(srcBal.Available, fndToTransfer) {
@@ -108,7 +108,7 @@ func (e *moneyManager) TransferMoneyUserToUser(ctx context.Context,
 
 	dstBal, err := e.GetBalance(ctx, usrToId)
 	if err != nil {
-		return errors.Wrap(detectNotFoundErr(err), "err in moneyManager.TransferMoneyUserToUser.GetBalance():")
+		return errors.Wrap(replaceNotFoundErr(err), "err in moneyManager.TransferMoneyUserToUser.GetBalance():")
 	}
 
 	if !isValidFundSum(balanceToFund(dstBal), fndToTransfer) {
@@ -126,10 +126,12 @@ func isValidUserId(usr entity.UserId) bool {
 	return string(usr) != ""
 }
 
-func detectNotFoundErr(err error) error {
+//replaceNotFoundErr checks if err is repository.ErrNotFound then return usecase.ErrNotFound
+//otherwise returns err
+func replaceNotFoundErr(err error) error {
 	if errors.Is(err, repository.ErrNotFound) {
 		return usecase.ErrNotFound
 	}
 
-	return nil
+	return err
 }

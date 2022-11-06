@@ -14,5 +14,5 @@ type MoneyManagerUseCase interface {
 
 	ReserveMoney(ctx context.Context, res entity.Reserve, fndVal string, fndUnit string) error
 	AcceptReserve(ctx context.Context, res entity.Reserve, fndVal string, fndUnit string) error
-	RevokeReserve(ctx context.Context, res entity.Reserve, fndVal string, fndUnit string) error
+	CancelReserve(ctx context.Context, res entity.Reserve) error
 }
