@@ -9,7 +9,7 @@ create table if not exists public.user
     created  timestamp   without time zone not null default now(),
     updated  timestamp   without time zone default null
     constraint amount_nonnegative check (amount >= 0)
-    );
+);
 
 -------------------------------------------------
 -- Create table reserve
@@ -37,4 +37,6 @@ create table if not exists public.report
     amount     numeric     not null,
     created    timestamp   without time zone not null default now(),
     constraint amount_nonnegative check (amount >= 0)
-);
+    );
+
+create index if not exists report_created_idx on public.report(created);
