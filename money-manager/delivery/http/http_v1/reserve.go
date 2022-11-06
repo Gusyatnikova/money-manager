@@ -2,6 +2,8 @@ package http_v1
 
 import (
 	"github.com/labstack/echo/v4"
+
+	"money-manager/money-manager/delivery"
 	"money-manager/money-manager/entity"
 )
 
@@ -18,7 +20,7 @@ func (e *ServerHandler) AddReserve(eCtx echo.Context) error {
 		return e.noContentErrResponse(eCtx, err)
 	}
 
-	return e.uc.Reserve(eCtx.Request().Context(), reserveReqBodyToReserve(reqBody), reqBody.Money.Value, reqBody.Money.Unit)
+	return e.uc.ReserveMoney(eCtx.Request().Context(), reserveReqBodyToReserve(reqBody), reqBody.Money.Value, reqBody.Money.Unit)
 }
 
 func (e *ServerHandler) RevokeReserve(eCtx echo.Context) error {
@@ -38,12 +40,12 @@ func parseAddReserveReqBody(eCtx echo.Context) (addReserveReqBody, error) {
 	addReserveBody := addReserveReqBody{}
 
 	if !isRequestBodyIsJSON(eCtx) {
-		return addReserveBody, ErrBadContentType
+		return addReserveBody, delivery.ErrBadContentType
 	}
 
 	err := eCtx.Bind(&addReserveBody)
 	if err != nil {
-		return addReserveBody, ErrBadRequestBody
+		return addReserveBody, delivery.ErrBadRequestBody
 	}
 
 	return addReserveBody, nil
