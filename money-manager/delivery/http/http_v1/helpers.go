@@ -8,7 +8,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 
-	"money-manager/money-manager/usecase/money_manager"
+	"money-manager/money-manager/delivery"
+	"money-manager/money-manager/usecase"
 )
 
 func (e *ServerHandler) noContentErrResponse(eCtx echo.Context, err error) error {
@@ -18,14 +19,26 @@ func (e *ServerHandler) noContentErrResponse(eCtx echo.Context, err error) error
 }
 
 func getErrStatusCode(err error) int {
-	switch err {
-	case money_manager.ErrInvalidUser:
+	if errors.Is(err, usecase.ErrInvalidUser) {
 		return http.StatusBadRequest
-	case money_manager.ErrNotFound:
+	}
+	if errors.Is(err, usecase.ErrNotFound) {
 		return http.StatusNotFound
-	case ErrBadRequestBody:
+	}
+	if errors.Is(err, usecase.ErrIncorrectMoney) {
 		return http.StatusBadRequest
-	case ErrBadContentType:
+	}
+	if errors.Is(err, usecase.ErrMoneyLimitIsExceeded) {
+		return http.StatusBadRequest
+	}
+	if errors.Is(err, usecase.ErrNotEnoughMoney) {
+		return http.StatusBadRequest
+	}
+
+	if errors.Is(err, delivery.ErrBadRequestBody) {
+		return http.StatusBadRequest
+	}
+	if errors.Is(err, delivery.ErrBadContentType) {
 		return http.StatusUnsupportedMediaType
 	}
 
