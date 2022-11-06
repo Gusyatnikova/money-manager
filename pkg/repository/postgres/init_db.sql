@@ -24,4 +24,17 @@ create table if not exists public.reserve
     created    timestamp   without time zone not null default now(),
     primary key (user_id, service_id, order_id),
     constraint amount_nonnegative check (amount >= 0)
-    );
+);
+
+-------------------------------------------------
+-- Create table report
+-------------------------------------------------
+
+create table if not exists public.report
+(
+    id         varchar(26) primary key,
+    service_id text        not null,
+    amount     numeric     not null,
+    created    timestamp   without time zone not null default now(),
+    constraint amount_nonnegative check (amount >= 0)
+);

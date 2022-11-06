@@ -2,31 +2,34 @@ package postgres
 
 import (
 	"context"
-	"github.com/jackc/pgx/v4"
-	"money-manager/money-manager/repository"
 
+	"github.com/jackc/pgx/v4"
+	"github.com/oklog/ulid/v2"
 	"github.com/pkg/errors"
 
 	"money-manager/money-manager/entity"
+	"money-manager/money-manager/repository"
 )
 
 const (
 	ReserveMoneySqlCmd = `insert into public.reserve (user_id , service_id, order_id, amount)
-                               values ($1, $2, $3, $4)`
+                          values ($1, $2, $3, $4)`
 
 	DebitMoneyFromReserveSqlCmd = `update public.reserve set amount = amount - $4 
-									where user_id = $1 and service_id = $2 and order_id = $3 returning amount`
+								   where user_id = $1 and service_id = $2 and order_id = $3 returning amount`
 
 	AddMoneyToUserFromReserveSqlCmd = `update public.user as u 
-                                       	set (amount, updated) = (u.amount + r.amount, now()) 
-										from (select amount from reserve where user_id = $1 and service_id = $2 and order_id = $3) as r 
-										where id = $1`
+                                       set (amount, updated) = (u.amount + r.amount, now()) 
+									   from (select amount from reserve where user_id = $1 and service_id = $2 and order_id = $3) as r 
+									   where id = $1`
 
 	DeleteReserveSqlCmd = `delete from public.reserve 
-							where user_id = $1 and service_id = $2 and order_id = $3`
+						   where user_id = $1 and service_id = $2 and order_id = $3`
 
 	GetAmountFromReserveSqlCmd = `select amount from public.reserve 
-									where user_id = $1 and service_id = $2 and order_id = $3`
+								  where user_id = $1 and service_id = $2 and order_id = $3`
+
+	AddReserveToReportSqlCmd = `insert into public.report values($1, $2, $3, now())`
 )
 
 func (e *pgMoneyManagerRepo) ReserveMoney(ctx context.Context, res entity.Reserve) error {
@@ -86,8 +89,9 @@ func (e *pgMoneyManagerRepo) AcceptReserve(ctx context.Context, res entity.Reser
 			return errors.Wrap(err, "MoneyManager.pgMoneyManagerRepo.AcceptReserve.Exec() for DeleteReserveSqlCmd")
 		}
 
-		//todo: add record to public.report
-		//_, err := tx.Exec(ctx, ReserveMoneySqlCmd, res.UserId, res.ServiceId, res.OrderId, res.Amount)
+		//add accepted reserve to report
+		_, err = tx.Exec(ctx, AddReserveToReportSqlCmd, ulid.Make().String(), res.ServiceId, res.Amount)
+
 		return errors.Wrap(err, "MoneyManager.pgMoneyManagerRepo.AcceptReserve")
 	}
 
