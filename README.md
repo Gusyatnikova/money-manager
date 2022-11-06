@@ -24,6 +24,10 @@ docker-compose -f money-manager/docker-compose.yml up
 ```sh
 telnet 0.0.0.0 8888
 ```
+- При необходимости сохранять данные между запусками запустить сервис командой
+```sh
+docker-compose -f money-manager/docker-compose-persistent.yml up
+```
 
 ## Предоставляемый API
 - Документация в [Postman](https://documenter.getpostman.com/view/17987701/2s8YYBRmmE)
