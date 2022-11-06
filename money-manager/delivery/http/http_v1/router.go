@@ -15,11 +15,11 @@ func NewServerHandler(e *echo.Echo, useCase usecase.MoneyManagerUseCase) {
 		uc: useCase,
 	}
 
-	e.POST("money-manager/users/balance", h.AddFunds)
+	e.POST("money-manager/users/balance", h.AddMoney)
 	e.GET("money-manager/users/balance", h.GetBalance)
-	e.PATCH("money-manager/users/balance", h.DebitFunds)
+	e.PATCH("money-manager/users/balance", h.DebitMoney)
 
-	e.POST("money-manager/transfers", h.TransferFunds)
+	e.POST("money-manager/transfers", h.TransferMoney)
 
 	e.POST("money-manager/reserves", h.AddReserve)
 
