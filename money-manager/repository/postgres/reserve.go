@@ -59,6 +59,10 @@ func (e *pgMoneyManagerRepo) AddReserve(ctx context.Context, res entity.Reserve)
 	return nil
 }
 
+func (e *pgMoneyManagerRepo) RevokeReserve(ctx context.Context, res entity.Reserve) error {
+	return nil
+}
+
 func (e *pgMoneyManagerRepo) AcceptReserve(ctx context.Context, resId entity.ReserveId) error {
 	return nil
 }

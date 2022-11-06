@@ -3,6 +3,7 @@ package money_manager
 import (
 	"context"
 	"fmt"
+	repo "money-manager/money-manager/repository/postgres"
 
 	"github.com/pkg/errors"
 
@@ -20,9 +21,12 @@ func NewMoneyManagerUseCase(repo usecase.MoneyManagerRepo) usecase.MoneyManagerU
 	}
 }
 
+var ErrInvalidUser = errors.New("Err in moneyManager: Invalid user")
+var ErrNotFound = errors.New("Err in moneyManager: requested resources is not found")
+
 func (e *moneyManager) AddFundsToUser(ctx context.Context, usr entity.UserId, fndVal string, fndUnit string) error {
 	if !isValidUserId(usr) {
-		return errors.New("err in moneyManager.AddFundsToUser(): Invalid user")
+		return ErrInvalidUser
 	}
 
 	fndToAdd, err := makeFunds(fndVal, fndUnit)
@@ -32,7 +36,10 @@ func (e *moneyManager) AddFundsToUser(ctx context.Context, usr entity.UserId, fn
 
 	userBal, err := e.repo.GetBalance(ctx, usr)
 	if err != nil {
-		return e.repo.AddUser(ctx, usr, fndToAdd)
+		if err == repo.ErrNotFound {
+			return e.repo.AddUser(ctx, usr, fndToAdd)
+		}
+		return err
 	}
 
 	if !isValidFundSum(balanceToFund(userBal), fndToAdd) {
@@ -46,10 +53,15 @@ func (e *moneyManager) GetBalance(ctx context.Context, usr entity.UserId) (entit
 	bal := entity.Balance{}
 
 	if !isValidUserId(usr) {
-		return bal, errors.New("err in moneyManager.GetBalance(): user is invalid")
+		return bal, ErrInvalidUser
 	}
 
-	return e.repo.GetBalance(ctx, usr)
+	bal, err := e.repo.GetBalance(ctx, usr)
+	if err == repo.ErrNotFound {
+		return bal, ErrNotFound
+	}
+
+	return bal, errors.Wrap(err, "err in moneyManager.GetBalance():")
 }
 
 func (e *moneyManager) Reserve(ctx context.Context, res entity.Reserve, fndVal string, fndUnit string) error {
@@ -72,6 +84,10 @@ func (e *moneyManager) Reserve(ctx context.Context, res entity.Reserve, fndVal s
 
 	res.Amount = fndToReserve
 	return e.repo.AddReserve(ctx, res)
+}
+
+func (e *moneyManager) RevokeReserve(ctx context.Context, res entity.Reserve, fndVal string, fndUnit string) error {
+	return nil
 }
 
 func (e *moneyManager) AcceptReserve(ctx context.Context, res entity.Reserve, funVal string, funUnit string) error {

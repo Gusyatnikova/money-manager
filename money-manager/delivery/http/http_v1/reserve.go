@@ -27,6 +27,16 @@ func (e *ServerHandler) AddReserve(eCtx echo.Context) error {
 	return e.uc.Reserve(eCtx.Request().Context(), reserveReqBodyToReserve(reqBody), reqBody.Money.Value, reqBody.Money.Unit)
 }
 
+func (e *ServerHandler) RevokeReserve(eCtx echo.Context) error {
+	reqBody, err := parseAddReserveReqBody(eCtx)
+	if err != nil {
+		return noContentErrResponse(eCtx, http.StatusBadRequest,
+			fmt.Sprintf("err in ServerHandler.RevokeReserve.parseAddReserveReqBody(): %v", err))
+	}
+
+	return e.uc.RevokeReserve(eCtx.Request().Context(), reserveReqBodyToReserve(reqBody), reqBody.Money.Value, reqBody.Money.Unit)
+}
+
 func (e *ServerHandler) AcceptReserve(eCtx echo.Context) error {
 	return nil
 }

@@ -20,6 +20,7 @@ type MoneyManagerUseCase interface {
 
 	Reserve(ctx context.Context, res entity.Reserve, fndVal string, fndUnit string) error
 	AcceptReserve(ctx context.Context, res entity.Reserve, fndVal string, fndUnit string) error
+	RevokeReserve(ctx context.Context, res entity.Reserve, fndVal string, fndUnit string) error
 }
 
 type MoneyManagerRepo interface {
@@ -30,5 +31,6 @@ type MoneyManagerRepo interface {
 	GetBalance(context.Context, entity.UserId) (entity.Balance, error)
 
 	AddReserve(ctx context.Context, res entity.Reserve) error
+	RevokeReserve(ctx context.Context, res entity.Reserve) error
 	AcceptReserve(ctx context.Context, resId entity.ReserveId) error
 }

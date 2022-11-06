@@ -1,15 +1,31 @@
 package http_v1
 
 import (
-	"github.com/labstack/echo/v4"
-	"github.com/rs/zerolog/log"
+	"net/http"
 	"strings"
+
+	"github.com/labstack/echo/v4"
+	"github.com/pkg/errors"
+	"github.com/rs/zerolog/log"
+
+	"money-manager/money-manager/usecase/money_manager"
 )
 
-func noContentErrResponse(eCtx echo.Context, statusCode int, errMsg string) error {
-	log.Error().Msg(errMsg)
+func (e *ServerHandler) noContentErrResponse(eCtx echo.Context, err error) error {
+	log.Error().Msg(errors.Wrap(err, "Err in ServerHandler: ").Error())
 
-	return eCtx.NoContent(statusCode)
+	return eCtx.NoContent(getErrStatusCode(err))
+}
+
+func getErrStatusCode(err error) int {
+	switch err {
+	case money_manager.ErrInvalidUser:
+		return http.StatusBadRequest
+	case money_manager.ErrNotFound:
+		return http.StatusNotFound
+	}
+
+	return http.StatusInternalServerError
 }
 
 func isRequestBodyIsJSON(eCtx echo.Context) bool {

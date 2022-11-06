@@ -42,6 +42,7 @@ func makeFunds(fundStr string, unitStr string) (entity.Fund, error) {
 }
 
 func balanceToFund(b entity.Balance) entity.Fund {
+	//todo: если у человека все в зарезервированных и они вернутся к нему на счет - будет переполнение. Чего делать?
 	return b.Current
 }
 

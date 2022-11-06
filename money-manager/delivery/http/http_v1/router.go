@@ -22,5 +22,8 @@ func NewServerHandler(e *echo.Echo, useCase usecase.MoneyManagerUseCase) {
 	e.POST("money-manager/transfers", h.TransferFunds)
 
 	e.POST("money-manager/reserves", h.AddReserve)
+
+	//todo: path adn verb for reserve revoke
+	e.POST("money-manager/reserves/revoke", h.RevokeReserve)
 	e.PATCH("money-manager/reserves", h.AcceptReserve)
 }

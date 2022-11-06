@@ -72,13 +72,18 @@ func (e *pgMoneyManagerRepo) AddUser(ctx context.Context, usr entity.UserId, fnd
 	return nil
 }
 
+var ErrNotFound = errors.New("Err in pgMoneyManagerRepo: requested resource is not found")
+
 func (e *pgMoneyManagerRepo) GetBalance(ctx context.Context, usr entity.UserId) (entity.Balance, error) {
 	sqlCmd := GetUserBalanceSqlCmd
 
 	row := e.db.QueryRow(ctx, sqlCmd, usr)
 	bal, err := e.ScanBalance(row)
 	if err != nil {
-		return bal, errors.Wrap(err, "MoneyManager.pgMoneyManagerRepo.GetBalance.Scan()")
+		if err == pgx.ErrNoRows {
+			return entity.Balance{}, ErrNotFound
+		}
+		return bal, errors.Wrap(err, "MoneyManager.pgMoneyManagerRepo.GetBalance.Scan(): ")
 	}
 
 	return bal, nil
@@ -121,8 +126,6 @@ func (e *pgMoneyManagerRepo) TransferFundsUserToUser(ctx context.Context,
 	if err := ts.Commit(ctx); err != nil {
 		return errors.Wrap(err, "MoneyManager.pgMoneyManagerRepo.TransferFundsUserToUser.Commit()")
 	}
-
-	return nil
 
 	return nil
 }

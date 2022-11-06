@@ -36,13 +36,15 @@ type transferFundsReqBody struct {
 	Money      money  `json:"funds"`
 }
 
+var ErrBadContentType = errors.New("Content-Type application/json is missing")
+var ErrBadRequestBody = errors.New("Request body is incorrect")
+
 func (e *ServerHandler) GetBalance(eCtx echo.Context) error {
 	usr := eCtx.QueryParam("user_id")
 
 	bal, err := e.uc.GetBalance(eCtx.Request().Context(), entity.UserId(usr))
 	if err != nil {
-		return noContentErrResponse(eCtx, http.StatusNotFound,
-			fmt.Sprintf("err in ServerHandler.GetBalance(): %v", err.Error()))
+		return e.noContentErrResponse(eCtx, err)
 	}
 
 	return eCtx.JSON(http.StatusOK, makeUserBalanceResponse(entity.UserId(usr), bal))
@@ -51,17 +53,21 @@ func (e *ServerHandler) GetBalance(eCtx echo.Context) error {
 func (e *ServerHandler) AddFunds(eCtx echo.Context) error {
 	reqBody, err := parseUserMoneyBody(eCtx)
 	if err != nil {
-		return noContentErrResponse(eCtx, http.StatusBadRequest,
-			fmt.Sprintf("err in ServerHandler.AddFundsToUser.parseUserMoneyBody(): %v", err))
+		return e.noContentErrResponse(eCtx, err)
 	}
 
-	return e.uc.AddFundsToUser(eCtx.Request().Context(), entity.UserId(reqBody.UserId), reqBody.Money.Value, reqBody.Money.Unit)
+	err = e.uc.AddFundsToUser(eCtx.Request().Context(), entity.UserId(reqBody.UserId), reqBody.Money.Value, reqBody.Money.Unit)
+	if err != nil {
+		return e.noContentErrResponse(eCtx, err)
+	}
+
+	return eCtx.NoContent(http.StatusCreated)
 }
 
 func (e *ServerHandler) DebitFunds(eCtx echo.Context) error {
 	reqBody, err := parseUserMoneyBody(eCtx)
 	if err != nil {
-		return noContentErrResponse(eCtx, http.StatusBadRequest,
+		return e.noContentErrResponse(eCtx, http.StatusBadRequest,
 			fmt.Sprintf("err in ServerHandler.DebitFunds.parseUserMoneyBody(): %v", err))
 	}
 
@@ -71,7 +77,7 @@ func (e *ServerHandler) DebitFunds(eCtx echo.Context) error {
 func (e *ServerHandler) TransferFunds(eCtx echo.Context) error {
 	reqBody, err := parseUserTransferReqBody(eCtx)
 	if err != nil {
-		return noContentErrResponse(eCtx, http.StatusBadRequest,
+		return e.noContentErrResponse(eCtx, http.StatusBadRequest,
 			fmt.Sprintf("err in ServerHandler.TransferFunds.parseUserTransferReqBody(): %v", err))
 	}
 
@@ -87,12 +93,12 @@ func parseUserMoneyBody(eCtx echo.Context) (fundsReqBody, error) {
 	frBody := fundsReqBody{}
 
 	if !isRequestBodyIsJSON(eCtx) {
-		return frBody, errors.New("Content-Type application/json is missing")
+		return frBody, ErrWrongContentType
 	}
 
 	err := eCtx.Bind(&frBody)
 	if err != nil {
-		return frBody, errors.Wrap(err, "Unable parse request body")
+		return frBody, ErrBadRequestBody
 	}
 
 	return frBody, nil
