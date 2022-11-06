@@ -80,7 +80,7 @@ func (e *pgMoneyManagerRepo) GetBalance(ctx context.Context, usr entity.UserId) 
 	row := e.db.QueryRow(ctx, sqlCmd, usr)
 	bal, err := e.ScanBalance(row)
 	if err != nil {
-		if err == pgx.ErrNoRows {
+		if err == ErrNotFound {
 			return entity.Balance{}, ErrNotFound
 		}
 		return bal, errors.Wrap(err, "MoneyManager.pgMoneyManagerRepo.GetBalance.Scan(): ")
@@ -164,7 +164,7 @@ func (e *pgMoneyManagerRepo) ScanBalance(row pgx.Row) (entity.Balance, error) {
 
 	err := row.Scan(&availVal, &resVal)
 	if err != nil {
-		return bal, errors.Wrap(err, "MoneyManager.pgMoneyManagerRepo.GetBalance.Scan()")
+		return bal, ErrNotFound
 	}
 
 	bal.Available = entity.Fund(availVal)

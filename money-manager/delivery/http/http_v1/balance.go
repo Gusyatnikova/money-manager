@@ -1,7 +1,6 @@
 package http_v1
 
 import (
-	"fmt"
 	"github.com/labstack/echo/v4"
 	"github.com/pkg/errors"
 	"net/http"
@@ -36,11 +35,18 @@ type transferFundsReqBody struct {
 	Money      money  `json:"funds"`
 }
 
+type transferFundsResBody struct {
+	FromUser userBalanceResp `json:"sender"`
+	ToUser   userBalanceResp `json:"recipient"`
+}
+
+const UserIdParam = "user_id"
+
 var ErrBadContentType = errors.New("Content-Type application/json is missing")
 var ErrBadRequestBody = errors.New("Request body is incorrect")
 
 func (e *ServerHandler) GetBalance(eCtx echo.Context) error {
-	usr := eCtx.QueryParam("user_id")
+	usr := eCtx.QueryParam(UserIdParam)
 
 	bal, err := e.uc.GetBalance(eCtx.Request().Context(), entity.UserId(usr))
 	if err != nil {
@@ -61,39 +67,63 @@ func (e *ServerHandler) AddFunds(eCtx echo.Context) error {
 		return e.noContentErrResponse(eCtx, err)
 	}
 
-	return eCtx.NoContent(http.StatusCreated)
+	eCtx.QueryParams().Set(UserIdParam, reqBody.UserId)
+
+	return e.GetBalance(eCtx)
 }
 
 func (e *ServerHandler) DebitFunds(eCtx echo.Context) error {
 	reqBody, err := parseUserMoneyBody(eCtx)
 	if err != nil {
-		return e.noContentErrResponse(eCtx, http.StatusBadRequest,
-			fmt.Sprintf("err in ServerHandler.DebitFunds.parseUserMoneyBody(): %v", err))
+		return e.noContentErrResponse(eCtx, err)
 	}
 
-	return e.uc.DebitFunds(eCtx.Request().Context(), entity.UserId(reqBody.UserId), reqBody.Money.Value, reqBody.Money.Unit)
+	err = e.uc.DebitFunds(eCtx.Request().Context(), entity.UserId(reqBody.UserId), reqBody.Money.Value, reqBody.Money.Unit)
+	if err != nil {
+		return e.noContentErrResponse(eCtx, err)
+	}
+
+	eCtx.QueryParams().Set(UserIdParam, reqBody.UserId)
+
+	return e.GetBalance(eCtx)
 }
 
 func (e *ServerHandler) TransferFunds(eCtx echo.Context) error {
 	reqBody, err := parseUserTransferReqBody(eCtx)
 	if err != nil {
-		return e.noContentErrResponse(eCtx, http.StatusBadRequest,
-			fmt.Sprintf("err in ServerHandler.TransferFunds.parseUserTransferReqBody(): %v", err))
+		return e.noContentErrResponse(eCtx, err)
 	}
 
-	return e.uc.TransferFundsUserToUser(
+	err = e.uc.TransferFundsUserToUser(
 		eCtx.Request().Context(),
 		entity.UserId(reqBody.FromUserId),
 		entity.UserId(reqBody.ToUserId),
 		reqBody.Money.Value,
 		reqBody.Money.Unit)
+	if err != nil {
+		return e.noContentErrResponse(eCtx, err)
+	}
+
+	userIdFrom := entity.UserId(reqBody.FromUserId)
+	userIdTo := entity.UserId(reqBody.ToUserId)
+
+	userBalFrom, err := e.uc.GetBalance(eCtx.Request().Context(), userIdFrom)
+	if err != nil {
+		return e.noContentErrResponse(eCtx, err)
+	}
+	userBalTo, err := e.uc.GetBalance(eCtx.Request().Context(), userIdTo)
+	if err != nil {
+		return e.noContentErrResponse(eCtx, err)
+	}
+
+	return eCtx.JSON(http.StatusOK, makeTransferFundsResBody(userIdFrom, userIdTo, userBalFrom, userBalTo))
 }
 
 func parseUserMoneyBody(eCtx echo.Context) (fundsReqBody, error) {
 	frBody := fundsReqBody{}
 
 	if !isRequestBodyIsJSON(eCtx) {
-		return frBody, ErrWrongContentType
+		return frBody, ErrBadContentType
 	}
 
 	err := eCtx.Bind(&frBody)
@@ -108,12 +138,12 @@ func parseUserTransferReqBody(eCtx echo.Context) (transferFundsReqBody, error) {
 	frBody := transferFundsReqBody{}
 
 	if !isRequestBodyIsJSON(eCtx) {
-		return frBody, errors.New("Content-Type application/json is missing")
+		return frBody, ErrBadContentType
 	}
 
 	err := eCtx.Bind(&frBody)
 	if err != nil {
-		return frBody, errors.Wrap(err, "Unable parse request body")
+		return frBody, ErrBadRequestBody
 	}
 
 	return frBody, nil
@@ -127,5 +157,12 @@ func makeUserBalanceResponse(usr entity.UserId, bal entity.Balance) userBalanceR
 			AvailMoney: bal.Available,
 			Unit:       "kop",
 		},
+	}
+}
+
+func makeTransferFundsResBody(usrFrom entity.UserId, usrTo entity.UserId, balFrom entity.Balance, balTo entity.Balance) transferFundsResBody {
+	return transferFundsResBody{
+		FromUser: makeUserBalanceResponse(usrFrom, balFrom),
+		ToUser:   makeUserBalanceResponse(usrTo, balTo),
 	}
 }

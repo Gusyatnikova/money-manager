@@ -23,6 +23,10 @@ func getErrStatusCode(err error) int {
 		return http.StatusBadRequest
 	case money_manager.ErrNotFound:
 		return http.StatusNotFound
+	case ErrBadRequestBody:
+		return http.StatusBadRequest
+	case ErrBadContentType:
+		return http.StatusUnsupportedMediaType
 	}
 
 	return http.StatusInternalServerError
