@@ -3,7 +3,6 @@ package app
 import (
 	"context"
 	"fmt"
-	"money-manager/money-manager/usecase/money_manager"
 	"os"
 	"os/signal"
 	"syscall"
@@ -12,8 +11,10 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"money-manager/money-manager/app/config"
+	"money-manager/money-manager/delivery"
 	"money-manager/money-manager/repository/postgres"
 	"money-manager/money-manager/usecase"
+	"money-manager/money-manager/usecase/money_manager"
 	"money-manager/pkg/http"
 	dbConn "money-manager/pkg/repository/postgres"
 )
@@ -23,7 +24,7 @@ type moneyManager struct {
 	usecase    usecase.MoneyManagerUseCase
 }
 
-func NewMoneyManager(ctx context.Context) usecase.MoneyManagerServer {
+func NewMoneyManager(ctx context.Context) delivery.MoneyManagerServer {
 	cfg, err := config.NewConfig()
 	if err != nil {
 		log.Panic().Msgf("err in NewMoneyManager.NewConfig(): %s", err.Error())
