@@ -9,16 +9,6 @@ import (
 	"money-manager/money-manager/entity"
 )
 
-const (
-	RUB string = "RUB"
-	KOP        = "KOP"
-)
-
-const (
-	KopVal int64 = 1
-	RubVal       = 100 * KopVal
-)
-
 //makeMoneyAmount checks if it is possible to convert curAmountStr and curUnitStr to value in kopeyks
 //and returns the resulting value if yes
 func makeMoneyAmount(curAmountStr string, curUnitStr string) (entity.MoneyAmount, error) {
@@ -33,9 +23,9 @@ func makeMoneyAmount(curAmountStr string, curUnitStr string) (entity.MoneyAmount
 		return fnd, errors.New("err in moneyManager.AddMoneyToUser.makeMoneyAmount(): Invalid fund")
 	}
 
-	if curUnit == RUB {
+	if curUnit == entity.RubUnit {
 		curAmount, err = stringRubToKop(curAmountStr)
-	} else {
+	} else if curUnit == entity.KopUnit {
 		curAmount, err = stringToKop(curAmountStr)
 	}
 
@@ -60,7 +50,7 @@ func stringRubToKop(str string) (uint64, error) {
 	}
 
 	rub, kop, _ := splitStrToRubAndKop(str)
-	totalKop := rub*uint64(RubVal) + kop
+	totalKop := rub*uint64(entity.RubValue) + kop
 
 	return totalKop, nil
 }

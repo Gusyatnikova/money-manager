@@ -13,15 +13,14 @@ func isValidInputMoney(val string, unit string) bool {
 		return false
 	}
 
-	if unit == RUB {
+	if unit == entity.RubUnit {
 		return isValidMoneyInRub(val)
-	} else {
-		return isValidMoneyInKop(val)
 	}
+	return isValidMoneyInKop(val)
 }
 
 func isValidMoneyUnit(str string) bool {
-	return str == RUB || str == KOP
+	return str == entity.RubUnit || str == entity.KopUnit
 }
 
 func isValidMoneyInKop(str string) bool {
@@ -50,7 +49,7 @@ func isValidMoneyInRub(str string) bool {
 		}
 
 		bigRub := new(big.Int).SetUint64(rubVal)
-		bigRubInKop := bigRub.Mul(big.NewInt(RubVal), bigRub)
+		bigRubInKop := bigRub.Mul(big.NewInt(int64(entity.RubValue)), bigRub)
 		bigKop := new(big.Int).SetUint64(kopVal)
 		maxUint := new(big.Int).SetUint64(^uint64(0))
 
