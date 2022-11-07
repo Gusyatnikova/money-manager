@@ -1,11 +1,6 @@
 package entity
 
-import "github.com/oklog/ulid/v2"
-
-type Balance struct {
-	Current   MoneyAmount
-	Available MoneyAmount
-}
+import "time"
 
 type UserId string
 
@@ -20,6 +15,16 @@ type Reserve struct {
 	MoneyAmount MoneyAmount
 }
 
-type Transaction struct {
-	id ulid.ULID
+type ReportPeriod struct {
+	Year  int
+	Month time.Month
+}
+
+type Report []interface{}
+
+type ReportMoneyPerService []ReportMoneyPerServiceRaw
+
+type ReportMoneyPerServiceRaw struct {
+	ServiceId ServiceId
+	Sum       string
 }

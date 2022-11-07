@@ -2,7 +2,6 @@ package repository
 
 import (
 	"context"
-
 	"money-manager/money-manager/entity"
 )
 
@@ -17,6 +16,8 @@ type MoneyManagerRepo interface {
 	GetReserve(context.Context, entity.Reserve) (entity.Reserve, error)
 	CancelReserve(context.Context, entity.Reserve) error
 	AcceptReserve(context.Context, entity.Reserve) error
+
+	MakeReportMoneyPerService(ctx context.Context, reportPeriod entity.ReportPeriod) (entity.ReportMoneyPerService, error)
 
 	HealthCheck(ctx context.Context) error
 }

@@ -64,6 +64,14 @@ func errToHttpErr(err error) (int, string) {
 	if errors.Is(err, delivery.ErrBadContentType) {
 		return http.StatusUnsupportedMediaType, delivery.ErrBadContentType.Error()
 	}
+	if errors.Is(err, delivery.ErrBadRequestParams) {
+		return http.StatusBadRequest, delivery.ErrBadRequestParams.Error()
+	}
+
+	//report errors
+	if errors.Is(err, usecase.ErrInvalidReportInfo) {
+		return http.StatusBadRequest, usecase.ErrInvalidReportInfo.Error()
+	}
 
 	return http.StatusInternalServerError, usecase.ErrInternalError.Error()
 }

@@ -41,7 +41,6 @@ func (e *moneyManager) AddMoneyToUser(ctx context.Context, usrId entity.UserId, 
 		return usecase.ErrMoneyLimitIsExceeded
 	}
 
-	//todo: money, err := e.repo.AddMoneyToUser(ctx, usrId, moneyToAdd)
 	err = e.repo.AddMoneyToUser(ctx, usrId, moneyToAdd)
 
 	return errors.Wrap(err, "Err in AddMoneyToUser.repo.AddMoneyToUser:")
@@ -78,7 +77,6 @@ func (e *moneyManager) DebitMoney(ctx context.Context, usrId entity.UserId, mone
 		return usecase.ErrNotEnoughMoney
 	}
 
-	//todo: money, err := e.repo.DebitMoney(ctx, usrId, moneyToDebit)
 	err = e.repo.DebitMoney(ctx, usrId, moneyToDebit)
 
 	return errors.Wrap(err, "err in err in moneyManager.DebitMoney().repo.DebitMoney:")
@@ -114,7 +112,6 @@ func (e *moneyManager) TransferMoneyUserToUser(ctx context.Context,
 		return usecase.ErrMoneyLimitIsExceeded
 	}
 
-	//todo: returns
 	err = e.repo.TransferMoneyUserToUser(ctx, usrFromId, usrToId, moneyToTransfer)
 
 	return errors.Wrap(err, "err in err in moneyManager.TransferMoneyUserToUser().repo.TransferMoneyUserToUser:")

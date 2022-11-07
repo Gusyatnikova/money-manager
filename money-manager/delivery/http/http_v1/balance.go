@@ -41,10 +41,12 @@ type transferMoneyResBody struct {
 	ToUser   userBalanceResp `json:"recipient"`
 }
 
-const UserIdParamName = "user_id"
+type ParamName string
+
+const UserIdParamName ParamName = "user_id"
 
 func (e *ServerHandler) GetBalance(eCtx echo.Context) error {
-	usr := eCtx.QueryParam(UserIdParamName)
+	usr := eCtx.QueryParam(string(UserIdParamName))
 
 	bal, err := e.uc.GetBalance(eCtx.Request().Context(), entity.UserId(usr))
 	if err != nil {
@@ -65,7 +67,7 @@ func (e *ServerHandler) AddMoney(eCtx echo.Context) error {
 		return err
 	}
 
-	eCtx.QueryParams().Set(UserIdParamName, reqBody.UserId)
+	eCtx.QueryParams().Set(string(UserIdParamName), reqBody.UserId)
 
 	return e.GetBalance(eCtx)
 }
@@ -81,7 +83,7 @@ func (e *ServerHandler) DebitMoney(eCtx echo.Context) error {
 		return err
 	}
 
-	eCtx.QueryParams().Set(UserIdParamName, reqBody.UserId)
+	eCtx.QueryParams().Set(string(UserIdParamName), reqBody.UserId)
 
 	return e.GetBalance(eCtx)
 }

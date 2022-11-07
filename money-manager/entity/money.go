@@ -16,3 +16,8 @@ type Money struct {
 	Value string
 	Unit  string
 }
+
+type Balance struct {
+	Current   MoneyAmount
+	Available MoneyAmount
+}

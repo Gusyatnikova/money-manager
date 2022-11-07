@@ -29,7 +29,7 @@ func (e *ServerHandler) AddReserve(eCtx echo.Context) error {
 		return err
 	}
 
-	eCtx.QueryParams().Set(UserIdParamName, reqBody.ReserveKey.UserId)
+	eCtx.QueryParams().Set(string(UserIdParamName), reqBody.ReserveKey.UserId)
 
 	return e.GetBalance(eCtx)
 }
@@ -64,7 +64,7 @@ func (e *ServerHandler) AcceptReserve(eCtx echo.Context) error {
 		return err
 	}
 
-	eCtx.QueryParams().Set(UserIdParamName, reqBody.ReserveKey.UserId)
+	eCtx.QueryParams().Set(string(UserIdParamName), reqBody.ReserveKey.UserId)
 
 	return e.GetBalance(eCtx)
 }
