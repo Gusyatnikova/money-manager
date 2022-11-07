@@ -25,7 +25,7 @@ func (e *moneyManager) ReserveMoney(ctx context.Context, resToAdd entity.Reserve
 	}
 
 	if !isValidReserveOperation(usrBal, moneyToReserve) {
-		return errors.New("err in moneyManager.ReserveMoney(): Invalid reserve operation")
+		return usecase.ErrInvalidReserve
 	}
 
 	_, err = e.repo.GetReserve(ctx, resToAdd)
