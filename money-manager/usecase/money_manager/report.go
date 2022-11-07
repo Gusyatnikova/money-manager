@@ -16,7 +16,7 @@ import (
 	"money-manager/money-manager/usecase"
 )
 
-const moneyPerServiceReportName = "report_money_per_service"
+const moneyPerServiceReportName = "money_per_service"
 
 //MakeReportMoneyPerService make a requested report and returns its full path and filename
 func (e *moneyManager) MakeReportMoneyPerService(ctx context.Context, yearStr, monthStr string) (string, string, error) {
