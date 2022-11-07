@@ -28,6 +28,12 @@ func (e *moneyManager) ReserveMoney(ctx context.Context, resToAdd entity.Reserve
 		return errors.New("err in moneyManager.ReserveMoney(): Invalid reserve operation")
 	}
 
+	_, err = e.repo.GetReserve(ctx, resToAdd)
+	if err == nil {
+		//reserve is already exists
+		return errors.Wrap(usecase.ErrDuplication, "err in moneyManager.ReserveMoney:")
+	}
+
 	resToAdd.MoneyAmount = moneyToReserve
 	return e.repo.ReserveMoney(ctx, resToAdd)
 }
