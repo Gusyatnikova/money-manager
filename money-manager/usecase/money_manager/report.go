@@ -51,6 +51,7 @@ func generateCSV(report entity.ReportMoneyPerService) (*os.File, error) {
 	defer reportFile.Close()
 
 	csvWriter := csv.NewWriter(reportFile)
+	csvWriter.Comma = ';'
 
 	for _, record := range data {
 		if err := csvWriter.Write(record); err != nil {
