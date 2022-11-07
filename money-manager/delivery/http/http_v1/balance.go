@@ -10,9 +10,9 @@ import (
 )
 
 type balance struct {
-	CurMoney   entity.Fund `json:"current_amount"`
-	AvailMoney entity.Fund `json:"available_amount"`
-	Unit       string      `json:"unit"`
+	Current   entity.MoneyAmount `json:"current_amount"`
+	Available entity.MoneyAmount `json:"available_amount"`
+	Unit      string             `json:"unit"`
 }
 
 type userBalanceResp struct {
@@ -25,15 +25,15 @@ type money struct {
 	Unit  string `json:"unit"`
 }
 
-type fundsReqBody struct {
+type userMoneyReqBody struct {
 	UserId string `json:"user_id"`
-	Money  money  `json:"funds"`
+	Money  money  `json:"money"`
 }
 
 type transferMoneyReqBody struct {
 	FromUserId string `json:"from_user_id"`
 	ToUserId   string `json:"to_user_id"`
-	Money      money  `json:"funds"`
+	Money      money  `json:"money"`
 }
 
 type transferMoneyResBody struct {
@@ -60,7 +60,7 @@ func (e *ServerHandler) AddMoney(eCtx echo.Context) error {
 		return e.noContentErrResponse(eCtx, err)
 	}
 
-	err = e.uc.AddMoneyToUser(eCtx.Request().Context(), entity.UserId(reqBody.UserId), reqBody.Money.Value, reqBody.Money.Unit)
+	err = e.uc.AddMoneyToUser(eCtx.Request().Context(), entity.UserId(reqBody.UserId), userMoneyReqBodyToMoney(reqBody))
 	if err != nil {
 		return e.noContentErrResponse(eCtx, err)
 	}
@@ -77,7 +77,7 @@ func (e *ServerHandler) DebitMoney(eCtx echo.Context) error {
 		return e.noContentErrResponse(eCtx, err)
 	}
 
-	err = e.uc.DebitMoney(eCtx.Request().Context(), entity.UserId(reqBody.UserId), reqBody.Money.Value, reqBody.Money.Unit)
+	err = e.uc.DebitMoney(eCtx.Request().Context(), entity.UserId(reqBody.UserId), userMoneyReqBodyToMoney(reqBody))
 	if err != nil {
 		return e.noContentErrResponse(eCtx, err)
 	}
@@ -97,8 +97,8 @@ func (e *ServerHandler) TransferMoney(eCtx echo.Context) error {
 		eCtx.Request().Context(),
 		entity.UserId(reqBody.FromUserId),
 		entity.UserId(reqBody.ToUserId),
-		reqBody.Money.Value,
-		reqBody.Money.Unit)
+		transferMoneyReqBodyToMoney(reqBody),
+	)
 	if err != nil {
 		return e.noContentErrResponse(eCtx, err)
 	}
@@ -118,8 +118,8 @@ func (e *ServerHandler) TransferMoney(eCtx echo.Context) error {
 	return eCtx.JSON(http.StatusOK, makeTransferMoneyResBody(userIdFrom, userIdTo, userBalFrom, userBalTo))
 }
 
-func parseUserMoneyBody(eCtx echo.Context) (fundsReqBody, error) {
-	frBody := fundsReqBody{}
+func parseUserMoneyBody(eCtx echo.Context) (userMoneyReqBody, error) {
+	frBody := userMoneyReqBody{}
 
 	if !isRequestBodyIsJSON(eCtx) {
 		return frBody, delivery.ErrBadContentType
@@ -152,9 +152,9 @@ func makeUserBalanceResponse(usr entity.UserId, bal entity.Balance) userBalanceR
 	return userBalanceResp{
 		UserId: string(usr),
 		Ub: balance{
-			CurMoney:   bal.Current,
-			AvailMoney: bal.Available,
-			Unit:       "kop",
+			Current:   bal.Current,
+			Available: bal.Available,
+			Unit:      "kop",
 		},
 	}
 }
@@ -163,5 +163,19 @@ func makeTransferMoneyResBody(usrFrom entity.UserId, usrTo entity.UserId, balFro
 	return transferMoneyResBody{
 		FromUser: makeUserBalanceResponse(usrFrom, balFrom),
 		ToUser:   makeUserBalanceResponse(usrTo, balTo),
+	}
+}
+
+func userMoneyReqBodyToMoney(req userMoneyReqBody) entity.Money {
+	return entity.Money{
+		Value: req.Money.Value,
+		Unit:  req.Money.Unit,
+	}
+}
+
+func transferMoneyReqBodyToMoney(req transferMoneyReqBody) entity.Money {
+	return entity.Money{
+		Value: req.Money.Value,
+		Unit:  req.Money.Unit,
 	}
 }

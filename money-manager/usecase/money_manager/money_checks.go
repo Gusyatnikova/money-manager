@@ -8,23 +8,23 @@ import (
 	"money-manager/money-manager/entity"
 )
 
-func isValidInputFund(val string, unit string) bool {
-	if !isValidFundUnit(unit) {
+func isValidInputMoney(val string, unit string) bool {
+	if !isValidMoneyUnit(unit) {
 		return false
 	}
 
 	if unit == RUB {
-		return isValidFundInRub(val)
+		return isValidMoneyInRub(val)
 	} else {
-		return isValidFundInKop(val)
+		return isValidMoneyInKop(val)
 	}
 }
 
-func isValidFundUnit(str string) bool {
+func isValidMoneyUnit(str string) bool {
 	return str == RUB || str == KOP
 }
 
-func isValidFundInKop(str string) bool {
+func isValidMoneyInKop(str string) bool {
 	val, err := strconv.ParseUint(str, 10, 64)
 	if err != nil || val == 0 {
 		return false
@@ -33,7 +33,7 @@ func isValidFundInKop(str string) bool {
 	return true
 }
 
-func isValidFundInRub(str string) bool {
+func isValidMoneyInRub(str string) bool {
 	//fund value without kopeyks
 	val, err := strconv.ParseUint(str, 10, 64)
 
@@ -62,11 +62,11 @@ func isValidFundInRub(str string) bool {
 	return val != 0
 }
 
-//isValidFundSum compares (cur.Amount + add.Amount) to MaxUint64 and returns:
+//isValidAmountSum compares (cur.Money + add.Money) to MaxUint64 and returns:
 //
-//true, if (cur.Amount + add.Amount) <= MaxUint64
+//true, if (cur.Money + add.Money) <= MaxUint64
 //false, otherwise
-func isValidFundSum(cur entity.Fund, add entity.Fund) bool {
+func isValidAmountSum(cur entity.MoneyAmount, add entity.MoneyAmount) bool {
 	bigUintCur := new(big.Int).SetUint64(uint64(cur))
 	bigUintAdd := new(big.Int).SetUint64(uint64(add))
 	bigUintMax := new(big.Int).SetUint64(^uint64(0))
@@ -75,7 +75,7 @@ func isValidFundSum(cur entity.Fund, add entity.Fund) bool {
 	return cmpRes != 1
 }
 
-//isValidDebit checks if curAmount >= toDebit and returns true if it is, otherwise false
-func isValidDebit(curAmount entity.Fund, toDebit entity.Fund) bool {
+//isValidDebit returns true if curAmount >= toDebit, otherwise false
+func isValidDebit(curAmount entity.MoneyAmount, toDebit entity.MoneyAmount) bool {
 	return curAmount >= toDebit
 }

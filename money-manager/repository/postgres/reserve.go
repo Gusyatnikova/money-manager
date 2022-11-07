@@ -35,12 +35,12 @@ const (
 func (e *pgMoneyManagerRepo) ReserveMoney(ctx context.Context, res entity.Reserve) error {
 	reserveMoneyFn := func(tx pgx.Tx) error {
 		//subtract amount from public.user
-		if _, err := tx.Exec(ctx, DebitMoneyFromUserSqlCmd, res.UserId, res.Amount); err != nil {
+		if _, err := tx.Exec(ctx, DebitMoneyFromUserSqlCmd, res.UserId, res.MoneyAmount); err != nil {
 			return errors.Wrap(err, "MoneyManager.pgMoneyManagerRepo.ReserveMoney.Exec() for DebitMoneyFromUserSqlCmd")
 		}
 
 		//add amount to public.reserve
-		_, err := tx.Exec(ctx, ReserveMoneySqlCmd, res.UserId, res.ServiceId, res.OrderId, res.Amount)
+		_, err := tx.Exec(ctx, ReserveMoneySqlCmd, res.UserId, res.ServiceId, res.OrderId, res.MoneyAmount)
 		return errors.Wrap(err, "MoneyManager.pgMoneyManagerRepo.ReserveMoney.Exec() for ReserveMoneySqlCmd")
 	}
 
@@ -63,7 +63,7 @@ func (e *pgMoneyManagerRepo) GetReserve(ctx context.Context, res entity.Reserve)
 		}
 	}
 
-	newRes.Amount = entity.Fund(resAmount)
+	newRes.MoneyAmount = entity.MoneyAmount(resAmount)
 	return newRes, errors.Wrap(err, "Err in: pgMoneyManagerRepo.GetReserve.Scan(): ")
 }
 
@@ -72,7 +72,7 @@ func (e *pgMoneyManagerRepo) AcceptReserve(ctx context.Context, res entity.Reser
 		//subtract amount from public.reserve
 		newAmount := uint64(0)
 
-		err := tx.QueryRow(ctx, DebitMoneyFromReserveSqlCmd, res.UserId, res.ServiceId, res.OrderId, res.Amount).Scan(&newAmount)
+		err := tx.QueryRow(ctx, DebitMoneyFromReserveSqlCmd, res.UserId, res.ServiceId, res.OrderId, res.MoneyAmount).Scan(&newAmount)
 		if err != nil {
 			return errors.Wrap(err, "MoneyManager.pgMoneyManagerRepo.AcceptReserve.Exec() for DebitMoneyFromReserveSqlCmd")
 		}
@@ -90,7 +90,7 @@ func (e *pgMoneyManagerRepo) AcceptReserve(ctx context.Context, res entity.Reser
 		}
 
 		//add accepted reserve to report
-		_, err = tx.Exec(ctx, AddReserveToReportSqlCmd, ulid.Make().String(), res.ServiceId, res.Amount)
+		_, err = tx.Exec(ctx, AddReserveToReportSqlCmd, ulid.Make().String(), res.ServiceId, res.MoneyAmount)
 
 		return errors.Wrap(err, "MoneyManager.pgMoneyManagerRepo.AcceptReserve")
 	}

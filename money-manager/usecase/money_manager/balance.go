@@ -19,31 +19,30 @@ func NewMoneyManagerUseCase(repo repository.MoneyManagerRepo) usecase.MoneyManag
 	}
 }
 
-func (e *moneyManager) AddMoneyToUser(ctx context.Context, usrId entity.UserId, fndVal string, fndUnit string) error {
+func (e *moneyManager) AddMoneyToUser(ctx context.Context, usrId entity.UserId, money entity.Money) error {
 	if !isValidUserId(usrId) {
 		return usecase.ErrInvalidUser
 	}
 
-	fndToAdd, err := makeMoney(fndVal, fndUnit)
+	moneyToAdd, err := makeMoneyAmount(money.Value, money.Unit)
 	if err != nil {
 		return usecase.ErrInvalidMoney
 	}
 
-	//todo:use returns in database
 	userBal, err := e.repo.GetBalance(ctx, usrId)
 	if err != nil {
 		if replaceNotFoundErr(err) != nil {
-			err = e.repo.AddUser(ctx, usrId, fndToAdd)
+			err = e.repo.AddUser(ctx, usrId, moneyToAdd)
 		}
 		return errors.Wrap(replaceNotFoundErr(err), "err in moneyManager.AddMoneyToUser().repo.GetBalance:")
 	}
 
-	if !isValidFundSum(balanceToFund(userBal), fndToAdd) {
+	if !isValidAmountSum(userBal.Available, moneyToAdd) {
 		return usecase.ErrMoneyLimitIsExceeded
 	}
 
-	//todo: money, err := e.repo.AddMoneyToUser(ctx, usrId, fndToAdd)
-	err = e.repo.AddMoneyToUser(ctx, usrId, fndToAdd)
+	//todo: money, err := e.repo.AddMoneyToUser(ctx, usrId, moneyToAdd)
+	err = e.repo.AddMoneyToUser(ctx, usrId, moneyToAdd)
 
 	return errors.Wrap(err, "Err in AddMoneyToUser.repo.AddMoneyToUser:")
 }
@@ -60,12 +59,12 @@ func (e *moneyManager) GetBalance(ctx context.Context, usrId entity.UserId) (ent
 	return bal, errors.Wrap(replaceNotFoundErr(err), "err in moneyManager.GetBalance().repo.GetBalance:")
 }
 
-func (e *moneyManager) DebitMoney(ctx context.Context, usrId entity.UserId, fndVal string, fndUnit string) error {
+func (e *moneyManager) DebitMoney(ctx context.Context, usrId entity.UserId, money entity.Money) error {
 	if !isValidUserId(usrId) {
 		return usecase.ErrInvalidUser
 	}
 
-	fndToDebit, err := makeMoney(fndVal, fndUnit)
+	moneyToDebit, err := makeMoneyAmount(money.Value, money.Unit)
 	if err != nil {
 		return usecase.ErrInvalidMoney
 	}
@@ -75,24 +74,24 @@ func (e *moneyManager) DebitMoney(ctx context.Context, usrId entity.UserId, fndV
 		return errors.Wrap(replaceNotFoundErr(err), "err in moneyManager.DebitMoney.GetBalance():")
 	}
 
-	if !isValidDebit(userBal.Available, fndToDebit) {
+	if !isValidDebit(userBal.Available, moneyToDebit) {
 		return usecase.ErrNotEnoughMoney
 	}
 
-	//todo: money, err := e.repo.DebitMoney(ctx, usrId, fndToDebit)
-	err = e.repo.DebitMoney(ctx, usrId, fndToDebit)
+	//todo: money, err := e.repo.DebitMoney(ctx, usrId, moneyToDebit)
+	err = e.repo.DebitMoney(ctx, usrId, moneyToDebit)
 
 	return errors.Wrap(err, "err in err in moneyManager.DebitMoney().repo.DebitMoney:")
 }
 
 func (e *moneyManager) TransferMoneyUserToUser(ctx context.Context,
-	usrFromId entity.UserId, usrToId entity.UserId, fndVal string, fndUnit string) error {
+	usrFromId entity.UserId, usrToId entity.UserId, money entity.Money) error {
 
 	if usrFromId == usrToId || !isValidUserId(usrFromId) || !isValidUserId(usrToId) {
 		return usecase.ErrInvalidUser
 	}
 
-	fndToTransfer, err := makeMoney(fndVal, fndUnit)
+	moneyToTransfer, err := makeMoneyAmount(money.Value, money.Unit)
 	if err != nil {
 		return usecase.ErrInvalidMoney
 	}
@@ -102,7 +101,7 @@ func (e *moneyManager) TransferMoneyUserToUser(ctx context.Context,
 		return errors.Wrap(replaceNotFoundErr(err), "err in moneyManager.TransferMoneyUserToUser.GetBalance():")
 	}
 
-	if !isValidDebit(srcBal.Available, fndToTransfer) {
+	if !isValidDebit(srcBal.Available, moneyToTransfer) {
 		return usecase.ErrNotEnoughMoney
 	}
 
@@ -111,12 +110,12 @@ func (e *moneyManager) TransferMoneyUserToUser(ctx context.Context,
 		return errors.Wrap(replaceNotFoundErr(err), "err in moneyManager.TransferMoneyUserToUser.GetBalance():")
 	}
 
-	if !isValidFundSum(balanceToFund(dstBal), fndToTransfer) {
+	if !isValidAmountSum(dstBal.Available, moneyToTransfer) {
 		return usecase.ErrMoneyLimitIsExceeded
 	}
 
 	//todo: returns
-	err = e.repo.TransferMoneyUserToUser(ctx, usrFromId, usrToId, fndToTransfer)
+	err = e.repo.TransferMoneyUserToUser(ctx, usrFromId, usrToId, moneyToTransfer)
 
 	return errors.Wrap(err, "err in err in moneyManager.TransferMoneyUserToUser().repo.TransferMoneyUserToUser:")
 }

@@ -9,7 +9,7 @@ import (
 	"money-manager/money-manager/entity"
 )
 
-func (e *moneyManager) ReserveMoney(ctx context.Context, resToAdd entity.Reserve, moneyVal string, moneyUnit string) error {
+func (e *moneyManager) ReserveMoney(ctx context.Context, resToAdd entity.Reserve, money entity.Money) error {
 	if !isValidReserveIds(resToAdd) {
 		return usecase.ErrInvalidReserve
 	}
@@ -19,15 +19,16 @@ func (e *moneyManager) ReserveMoney(ctx context.Context, resToAdd entity.Reserve
 		return errors.Wrap(replaceNotFoundErr(err), "err in moneyManager.ReserveMoney.GetBalance():")
 	}
 
-	moneyToReserve, err := makeMoney(moneyVal, moneyUnit)
+	moneyToReserve, err := makeMoneyAmount(money.Value, money.Unit)
 	if err != nil {
 		return usecase.ErrInvalidMoney
 	}
+
 	if !isValidReserveOperation(usrBal, moneyToReserve) {
 		return errors.New("err in moneyManager.ReserveMoney(): Invalid reserve operation")
 	}
 
-	resToAdd.Amount = moneyToReserve
+	resToAdd.MoneyAmount = moneyToReserve
 	return e.repo.ReserveMoney(ctx, resToAdd)
 }
 
@@ -46,7 +47,7 @@ func (e *moneyManager) CancelReserve(ctx context.Context, resToCancel entity.Res
 	return errors.Wrap(err, "err in err in moneyManager.CancelReserve().repo.CancelReserve:")
 }
 
-func (e *moneyManager) AcceptReserve(ctx context.Context, resToAccept entity.Reserve, moneyVal string, moneyUnit string) error {
+func (e *moneyManager) AcceptReserve(ctx context.Context, resToAccept entity.Reserve, money entity.Money) error {
 	if !isValidReserveIds(resToAccept) {
 		return usecase.ErrInvalidReserve
 	}
@@ -56,13 +57,13 @@ func (e *moneyManager) AcceptReserve(ctx context.Context, resToAccept entity.Res
 		return errors.Wrap(replaceNotFoundErr(err), "err in moneyManager.ReserveMoney.GetReserve():")
 	}
 
-	moneyToAccept, err := makeMoney(moneyVal, moneyUnit)
+	moneyToAccept, err := makeMoneyAmount(money.Value, money.Unit)
 	if err != nil {
 		return usecase.ErrInvalidMoney
 	}
-	resToAccept.Amount = moneyToAccept
+	resToAccept.MoneyAmount = moneyToAccept
 
-	if !isValidDebit(curReserve.Amount, moneyToAccept) {
+	if !isValidDebit(curReserve.MoneyAmount, moneyToAccept) {
 		return usecase.ErrNotEnoughMoney
 	}
 
@@ -75,9 +76,11 @@ func isValidReserveIds(res entity.Reserve) bool {
 	return isValidUserId(res.UserId) && res.OrderId != "" && res.ServiceId != ""
 }
 
-func isValidReserveOperation(curBal entity.Balance, toReserve entity.Fund) bool {
+//isValidReserveOperation checks if curBal is more than toReserve
+//and checks possible overflow after reservation
+func isValidReserveOperation(curBal entity.Balance, toReserve entity.MoneyAmount) bool {
 	isHaveMoney := curBal.Available >= toReserve
-	curReserve := curBal.Current - curBal.Available
+	usrCurReserve := curBal.Current - curBal.Available
 
-	return isHaveMoney && isValidFundSum(curReserve, toReserve)
+	return isHaveMoney && isValidAmountSum(usrCurReserve, toReserve)
 }

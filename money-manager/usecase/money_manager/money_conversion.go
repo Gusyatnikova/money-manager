@@ -19,18 +19,18 @@ const (
 	RubVal       = 100 * KopVal
 )
 
-//makeMoney checks if it is possible to convert curAmountStr (curUnitStr) to value in kopeyks
+//makeMoneyAmount checks if it is possible to convert curAmountStr and curUnitStr to value in kopeyks
 //and returns the resulting value if yes
-func makeMoney(curAmountStr string, curUnitStr string) (entity.Fund, error) {
+func makeMoneyAmount(curAmountStr string, curUnitStr string) (entity.MoneyAmount, error) {
 	var (
-		fnd       entity.Fund
+		fnd       entity.MoneyAmount
 		curAmount uint64
 		err       error
 	)
 
 	curUnit := strings.ToUpper(curUnitStr)
-	if !isValidInputFund(curAmountStr, curUnit) {
-		return fnd, errors.New("err in moneyManager.AddMoneyToUser.makeMoney(): Invalid fund")
+	if !isValidInputMoney(curAmountStr, curUnit) {
+		return fnd, errors.New("err in moneyManager.AddMoneyToUser.makeMoneyAmount(): Invalid fund")
 	}
 
 	if curUnit == RUB {
@@ -39,18 +39,13 @@ func makeMoney(curAmountStr string, curUnitStr string) (entity.Fund, error) {
 		curAmount, err = stringToKop(curAmountStr)
 	}
 
-	fnd = entity.Fund(curAmount)
-	return fnd, err
-}
-
-func balanceToFund(b entity.Balance) entity.Fund {
-	return b.Current
+	return entity.MoneyAmount(curAmount), err
 }
 
 //stringToKop convert kopeyks in string to kopeyks in uint64
 func stringToKop(str string) (uint64, error) {
-	if !isValidFundInKop(str) {
-		return 0, errors.New("err in moneyManager.AddMoneyToUser.makeMoney.stringToKop(): Invalid fund value in KOP")
+	if !isValidMoneyInKop(str) {
+		return 0, errors.New("err in moneyManager.AddMoneyToUser.makeMoneyAmount.stringToKop(): Invalid fund value in KOP")
 	}
 
 	val, _ := strconv.ParseUint(str, 10, 64)
@@ -60,8 +55,8 @@ func stringToKop(str string) (uint64, error) {
 
 //stringRubToKop convert rubles in string to kopeyks in uint64
 func stringRubToKop(str string) (uint64, error) {
-	if !isValidFundInRub(str) {
-		return 0, errors.New("err in moneyManager.AddMoneyToUser.makeMoney.stringRubToKop(): Invalid fund value")
+	if !isValidMoneyInRub(str) {
+		return 0, errors.New("err in moneyManager.AddMoneyToUser.makeMoneyAmount.stringRubToKop(): Invalid fund value")
 	}
 
 	rub, kop, _ := splitStrToRubAndKop(str)

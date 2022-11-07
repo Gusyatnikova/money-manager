@@ -2,26 +2,29 @@ package entity
 
 import "github.com/oklog/ulid/v2"
 
-type Fund uint64
-
 type UserId string
 
-type ReserveId string
+type MoneyAmount uint64
 
-type ServiceId string
-
-type OrderId string
-
-type Balance struct {
-	Current   Fund
-	Available Fund
+type Money struct {
+	Value string
+	Unit  string
 }
 
+type Balance struct {
+	Current   MoneyAmount
+	Available MoneyAmount
+}
+
+type ReserveId string
+type ServiceId string
+type OrderId string
+
 type Reserve struct {
-	UserId    UserId
-	ServiceId ServiceId
-	OrderId   OrderId
-	Amount    Fund
+	UserId      UserId
+	ServiceId   ServiceId
+	OrderId     OrderId
+	MoneyAmount MoneyAmount
 }
 
 type Transaction struct {

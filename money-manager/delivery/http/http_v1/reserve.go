@@ -15,7 +15,7 @@ type ReserveKey struct {
 
 type reserveReqBody struct {
 	ReserveKey ReserveKey `json:"reserve_id"`
-	Money      money      `json:"funds"`
+	Money      money      `json:"money"`
 }
 
 func (e *ServerHandler) AddReserve(eCtx echo.Context) error {
@@ -24,7 +24,7 @@ func (e *ServerHandler) AddReserve(eCtx echo.Context) error {
 		return e.noContentErrResponse(eCtx, err)
 	}
 
-	err = e.uc.ReserveMoney(eCtx.Request().Context(), reserveReqBodyToReserve(reqBody), reqBody.Money.Value, reqBody.Money.Unit)
+	err = e.uc.ReserveMoney(eCtx.Request().Context(), reserveReqBodyToReserve(reqBody), reserveReqBodyToMoney(reqBody))
 	if err != nil {
 		return e.noContentErrResponse(eCtx, err)
 	}
@@ -60,7 +60,7 @@ func (e *ServerHandler) AcceptReserve(eCtx echo.Context) error {
 		return e.noContentErrResponse(eCtx, err)
 	}
 
-	err = e.uc.AcceptReserve(eCtx.Request().Context(), reserveReqBodyToReserve(reqBody), reqBody.Money.Value, reqBody.Money.Unit)
+	err = e.uc.AcceptReserve(eCtx.Request().Context(), reserveReqBodyToReserve(reqBody), reserveReqBodyToMoney(reqBody))
 	if err != nil {
 		return e.noContentErrResponse(eCtx, err)
 	}
@@ -106,5 +106,12 @@ func reserveReqBodyToReserve(res reserveReqBody) entity.Reserve {
 		UserId:    entity.UserId(res.ReserveKey.UserId),
 		ServiceId: entity.ServiceId(res.ReserveKey.ServiceId),
 		OrderId:   entity.OrderId(res.ReserveKey.OrderId),
+	}
+}
+
+func reserveReqBodyToMoney(res reserveReqBody) entity.Money {
+	return entity.Money{
+		Value: res.Money.Value,
+		Unit:  res.Money.Unit,
 	}
 }

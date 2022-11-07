@@ -23,9 +23,9 @@ const (
 	DebitMoneyFromUserSqlCmd = `update public.user set (amount, updated) = (amount - $2, now()) where id = $1`
 )
 
-func (e *pgMoneyManagerRepo) AddMoneyToUser(ctx context.Context, usr entity.UserId, fnd entity.Fund) error {
+func (e *pgMoneyManagerRepo) AddMoneyToUser(ctx context.Context, usr entity.UserId, amount entity.MoneyAmount) error {
 	addMoneyFn := func(tx pgx.Tx) error {
-		_, err := tx.Exec(ctx, AddMoneyToUserSqlCmd, usr, fnd)
+		_, err := tx.Exec(ctx, AddMoneyToUserSqlCmd, usr, amount)
 		return errors.Wrap(err, "Err in: pgMoneyManagerRepo.AddMoneyToUser.Exec()")
 	}
 
@@ -34,9 +34,9 @@ func (e *pgMoneyManagerRepo) AddMoneyToUser(ctx context.Context, usr entity.User
 	return errors.Wrap(err, "Err in: pgMoneyManagerRepo.AddMoneyToUser.RunTx()")
 }
 
-func (e *pgMoneyManagerRepo) AddUser(ctx context.Context, usr entity.UserId, fnd entity.Fund) error {
+func (e *pgMoneyManagerRepo) AddUser(ctx context.Context, usr entity.UserId, amount entity.MoneyAmount) error {
 	addUserFn := func(tx pgx.Tx) error {
-		_, err := tx.Exec(ctx, AddUserSqlCmd, usr, fnd)
+		_, err := tx.Exec(ctx, AddUserSqlCmd, usr, amount)
 		return errors.Wrap(err, "Err in: pgMoneyManagerRepo.AddUser.Exec()")
 	}
 
@@ -58,16 +58,16 @@ func (e *pgMoneyManagerRepo) GetBalance(ctx context.Context, usr entity.UserId) 
 }
 
 func (e *pgMoneyManagerRepo) TransferMoneyUserToUser(ctx context.Context,
-	usrFrom entity.UserId, usrTo entity.UserId, fnd entity.Fund) error {
+	usrFrom entity.UserId, usrTo entity.UserId, amount entity.MoneyAmount) error {
 
 	transferMoneyFn := func(tx pgx.Tx) error {
 		//subtract amount from usrFrom
-		if _, err := tx.Exec(ctx, DebitMoneyFromUserSqlCmd, usrFrom, fnd); err != nil {
+		if _, err := tx.Exec(ctx, DebitMoneyFromUserSqlCmd, usrFrom, amount); err != nil {
 			return errors.Wrap(err, "Err in: pgMoneyManagerRepo.TransferMoneyUserToUser.Exec() for DebitMoneyFromUserSqlCmd")
 		}
 
 		//add amount to usrTo
-		_, err := tx.Exec(ctx, AddMoneyToUserSqlCmd, usrTo, fnd)
+		_, err := tx.Exec(ctx, AddMoneyToUserSqlCmd, usrTo, amount)
 
 		return errors.Wrap(err, "Err in: pgMoneyManagerRepo.TransferMoneyUserToUser.Exec() for AddMoneyToUserSqlCmd")
 	}
@@ -79,9 +79,9 @@ func (e *pgMoneyManagerRepo) TransferMoneyUserToUser(ctx context.Context,
 	return nil
 }
 
-func (e *pgMoneyManagerRepo) DebitMoney(ctx context.Context, usrId entity.UserId, fnd entity.Fund) error {
+func (e *pgMoneyManagerRepo) DebitMoney(ctx context.Context, usrId entity.UserId, amount entity.MoneyAmount) error {
 	debitMoneyFn := func(tx pgx.Tx) error {
-		_, err := tx.Exec(ctx, DebitMoneyFromUserSqlCmd, usrId, fnd)
+		_, err := tx.Exec(ctx, DebitMoneyFromUserSqlCmd, usrId, amount)
 		return errors.Wrap(err, "Err in: pgMoneyManagerRepo.DebitMoney.Exec()")
 	}
 
@@ -104,11 +104,11 @@ func (e *pgMoneyManagerRepo) ScanBalance(row pgx.Row) (entity.Balance, error) {
 		return bal, errors.Wrap(err, "Err in: pgMoneyManagerRepo.ScanBalance.Scan()")
 	}
 
-	bal.Available = entity.Fund(availVal)
-	bal.Current = entity.Fund(availVal)
+	bal.Available = entity.MoneyAmount(availVal)
+	bal.Current = entity.MoneyAmount(availVal)
 
 	if resVal != 0 {
-		bal.Current = entity.Fund(availVal + resVal)
+		bal.Current = entity.MoneyAmount(availVal + resVal)
 	}
 
 	return bal, nil
