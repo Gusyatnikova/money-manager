@@ -50,7 +50,7 @@ func (e *ServerHandler) CancelReserve(eCtx echo.Context) error {
 		return err
 	}
 
-	return nil
+	return e.GetBalance(eCtx)
 }
 
 func (e *ServerHandler) AcceptReserve(eCtx echo.Context) error {
