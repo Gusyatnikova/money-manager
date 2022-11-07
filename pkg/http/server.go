@@ -2,13 +2,16 @@ package http
 
 import (
 	"context"
-	"money-manager/money-manager/delivery/http/http_v1"
-	"money-manager/money-manager/usecase"
+	"net/http"
 	"time"
 
 	"github.com/labstack/echo/v4"
 	mw "github.com/labstack/echo/v4/middleware"
+	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
+
+	"money-manager/money-manager/delivery/http/http_v1"
+	"money-manager/money-manager/usecase"
 )
 
 type Server interface {
@@ -48,7 +51,9 @@ func (e *server) Run() {
 	log.Info().Msgf("HTTP server listening at %v", e.httpServer.Server.Addr)
 
 	if err := e.httpServer.Server.ListenAndServe(); err != nil {
-		log.Panic().Msgf("err in server.Run(): %s", err.Error())
+		if !errors.Is(err, http.ErrServerClosed) {
+			log.Panic().Msgf("err in server.Run(): %s", err.Error())
+		}
 	}
 }
 
