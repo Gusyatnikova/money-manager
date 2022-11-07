@@ -21,24 +21,23 @@ type reserveReqBody struct {
 func (e *ServerHandler) AddReserve(eCtx echo.Context) error {
 	reqBody, err := parseReserveReqBody(eCtx)
 	if err != nil {
-		return e.noContentErrResponse(eCtx, err)
+		return err
 	}
 
 	err = e.uc.ReserveMoney(eCtx.Request().Context(), reserveReqBodyToReserve(reqBody), reserveReqBodyToMoney(reqBody))
 	if err != nil {
-		return e.noContentErrResponse(eCtx, err)
+		return err
 	}
 
 	eCtx.QueryParams().Set(UserIdParamName, reqBody.ReserveKey.UserId)
 
-	//todo: get this data from e.uc.AddMoneyToUser return
 	return e.GetBalance(eCtx)
 }
 
 func (e *ServerHandler) CancelReserve(eCtx echo.Context) error {
 	reqBody, err := parseCancelReserveReqBody(eCtx)
 	if err != nil {
-		return e.noContentErrResponse(eCtx, err)
+		return err
 	}
 
 	reserveReqBody := reserveReqBody{
@@ -48,7 +47,7 @@ func (e *ServerHandler) CancelReserve(eCtx echo.Context) error {
 
 	err = e.uc.CancelReserve(eCtx.Request().Context(), reserveReqBodyToReserve(reserveReqBody))
 	if err != nil {
-		return e.noContentErrResponse(eCtx, err)
+		return err
 	}
 
 	return nil
@@ -57,17 +56,16 @@ func (e *ServerHandler) CancelReserve(eCtx echo.Context) error {
 func (e *ServerHandler) AcceptReserve(eCtx echo.Context) error {
 	reqBody, err := parseReserveReqBody(eCtx)
 	if err != nil {
-		return e.noContentErrResponse(eCtx, err)
+		return err
 	}
 
 	err = e.uc.AcceptReserve(eCtx.Request().Context(), reserveReqBodyToReserve(reqBody), reserveReqBodyToMoney(reqBody))
 	if err != nil {
-		return e.noContentErrResponse(eCtx, err)
+		return err
 	}
 
 	eCtx.QueryParams().Set(UserIdParamName, reqBody.ReserveKey.UserId)
 
-	//todo: get this data from e.uc.AddMoneyToUser return
 	return e.GetBalance(eCtx)
 }
 

@@ -38,6 +38,7 @@ func NewServer(ctx context.Context, cfg ServerConfig, uc usecase.MoneyManagerUse
 				`"uri":"${uri}","query":"${query}","status":${status},"error":"${error}"}` + "\n",
 		}),
 		mw.Recover())
+	e.Use(http_v1.ErrorHandlerMiddleware)
 
 	http_v1.NewServerHandler(e, uc)
 

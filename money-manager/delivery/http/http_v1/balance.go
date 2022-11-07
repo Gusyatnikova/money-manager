@@ -48,7 +48,7 @@ func (e *ServerHandler) GetBalance(eCtx echo.Context) error {
 
 	bal, err := e.uc.GetBalance(eCtx.Request().Context(), entity.UserId(usr))
 	if err != nil {
-		return e.noContentErrResponse(eCtx, err)
+		return err
 	}
 
 	return eCtx.JSON(http.StatusOK, makeUserBalanceResponse(entity.UserId(usr), bal))
@@ -57,29 +57,28 @@ func (e *ServerHandler) GetBalance(eCtx echo.Context) error {
 func (e *ServerHandler) AddMoney(eCtx echo.Context) error {
 	reqBody, err := parseUserMoneyBody(eCtx)
 	if err != nil {
-		return e.noContentErrResponse(eCtx, err)
+		return err
 	}
 
 	err = e.uc.AddMoneyToUser(eCtx.Request().Context(), entity.UserId(reqBody.UserId), userMoneyReqBodyToMoney(reqBody))
 	if err != nil {
-		return e.noContentErrResponse(eCtx, err)
+		return err
 	}
 
 	eCtx.QueryParams().Set(UserIdParamName, reqBody.UserId)
 
-	//todo: get this data from e.uc.AddMoneyToUser return
 	return e.GetBalance(eCtx)
 }
 
 func (e *ServerHandler) DebitMoney(eCtx echo.Context) error {
 	reqBody, err := parseUserMoneyBody(eCtx)
 	if err != nil {
-		return e.noContentErrResponse(eCtx, err)
+		return err
 	}
 
 	err = e.uc.DebitMoney(eCtx.Request().Context(), entity.UserId(reqBody.UserId), userMoneyReqBodyToMoney(reqBody))
 	if err != nil {
-		return e.noContentErrResponse(eCtx, err)
+		return err
 	}
 
 	eCtx.QueryParams().Set(UserIdParamName, reqBody.UserId)
@@ -90,7 +89,7 @@ func (e *ServerHandler) DebitMoney(eCtx echo.Context) error {
 func (e *ServerHandler) TransferMoney(eCtx echo.Context) error {
 	reqBody, err := parseUserTransferReqBody(eCtx)
 	if err != nil {
-		return e.noContentErrResponse(eCtx, err)
+		return err
 	}
 
 	err = e.uc.TransferMoneyUserToUser(
@@ -100,7 +99,7 @@ func (e *ServerHandler) TransferMoney(eCtx echo.Context) error {
 		transferMoneyReqBodyToMoney(reqBody),
 	)
 	if err != nil {
-		return e.noContentErrResponse(eCtx, err)
+		return err
 	}
 
 	userIdFrom := entity.UserId(reqBody.FromUserId)
@@ -108,11 +107,11 @@ func (e *ServerHandler) TransferMoney(eCtx echo.Context) error {
 
 	userBalFrom, err := e.uc.GetBalance(eCtx.Request().Context(), userIdFrom)
 	if err != nil {
-		return e.noContentErrResponse(eCtx, err)
+		return err
 	}
 	userBalTo, err := e.uc.GetBalance(eCtx.Request().Context(), userIdTo)
 	if err != nil {
-		return e.noContentErrResponse(eCtx, err)
+		return err
 	}
 
 	return eCtx.JSON(http.StatusOK, makeTransferMoneyResBody(userIdFrom, userIdTo, userBalFrom, userBalTo))
