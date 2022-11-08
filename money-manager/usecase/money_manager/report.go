@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -16,37 +17,58 @@ import (
 	"money-manager/money-manager/usecase"
 )
 
-const moneyPerServiceReportName = "money_per_service"
+const moneyPerServiceReportType = "money_per_service"
 
-//MakeReportMoneyPerService make a requested report and returns its full path and filename
-func (e *moneyManager) MakeReportMoneyPerService(ctx context.Context, yearStr, monthStr string) (string, string, error) {
+type reportInfo struct {
+	Type   string
+	Period entity.ReportPeriod
+}
+
+//MakeReport make report based on reportType value and returns its full path and filename
+func (e *moneyManager) MakeReport(ctx context.Context, reportType, yearStr, monthStr string) (string, string, error) {
 	reportPeriod, err := yearMonthToReportPeriod(yearStr, monthStr)
 	if err != nil {
 		return "", "", usecase.ErrInvalidReportInfo
 	}
 
-	report, err := e.repo.MakeReportMoneyPerService(ctx, reportPeriod)
-	if err != nil {
-		return "", "", errors.Wrap(err, "err in moneyManager.MakeReportMoneyPerService().MakeReportMoneyPerService():")
+	reportInfo := reportInfo{
+		Type:   reportType,
+		Period: reportPeriod,
 	}
 
-	reportCSV, err := generateCSV(report)
+	switch strings.ToLower(reportType) {
+	case moneyPerServiceReportType:
+		return e.generateMoneyPerServiceReport(ctx, reportInfo)
+	default:
+		return "", "", usecase.ErrInvalidReportInfo
+	}
+}
+
+//generateMoneyPerServiceReport generate report of moneyPerServiceReportType type
+func (e *moneyManager) generateMoneyPerServiceReport(ctx context.Context, reportInfo reportInfo) (string, string, error) {
+	reportData, err := e.repo.MakeReportMoneyPerService(ctx, reportInfo.Period)
 	if err != nil {
-		return "", "", errors.Wrap(err, "err in moneyManager.MakeReportMoneyPerService().generateCSV():")
+		return "", "", errors.Wrap(err, "err in moneyManager.MakeReport().MakeReport():")
+	}
+
+	reportCSV, err := generateCSV(reportData, reportInfo)
+	if err != nil {
+		return "", "", errors.Wrap(err, "err in moneyManager.MakeReport().generateCSV():")
 	}
 
 	reportPath, err := getFullPath(reportCSV)
 
-	return reportPath, generateMoneyPerServiceReportName(), errors.Wrap(err, "err in moneyManager.MakeReportMoneyPerService():")
+	return reportPath, generateMoneyPerServiceReportName(reportInfo.Type),
+		errors.Wrap(err, "err in moneyManager.MakeReport.generateMoneyPerServiceReport():")
 }
 
 //generateCSV generate .csv from report and returns its full path
-func generateCSV(report entity.ReportMoneyPerService) (*os.File, error) {
-	data := reportMoneyPerServiceToSlice(report)
+func generateCSV(reportData entity.ReportMoneyPerService, reportInfo reportInfo) (*os.File, error) {
+	data := reportMoneyPerServiceToSlice(reportData)
 
-	reportFile, err := os.Create(generateMoneyPerServiceReportName())
+	reportFile, err := os.Create(generateMoneyPerServiceReportName(reportInfo.Type))
 	if err != nil {
-		return nil, errors.Wrap(err, "Err in moneyManager.MakeReportMoneyPerService().Open():")
+		return nil, errors.Wrap(err, "Err in moneyManager.MakeReport().Open():")
 	}
 	defer reportFile.Close()
 
@@ -72,12 +94,12 @@ func getFullPath(file *os.File) (string, error) {
 	return filepath.Join(path, file.Name()), nil
 }
 
-func generateMoneyPerServiceReportName() string {
+func generateMoneyPerServiceReportName(reportType string) string {
 	now := time.Now()
 
 	//report filename template is moneyPerServiceReportName_YYYY-MM-DD.csv
 	return fmt.Sprintf("%s_%d-%02d-%02d.csv",
-		moneyPerServiceReportName, now.Year(), now.Month(), now.Day())
+		reportType, now.Year(), now.Month(), now.Day())
 }
 
 func reportMoneyPerServiceToSlice(report entity.ReportMoneyPerService) [][]string {

@@ -25,7 +25,7 @@ func NewServerHandler(e *echo.Echo, useCase usecase.MoneyManagerUseCase) {
 	e.DELETE("reserves/cancel", h.CancelReserve)
 	e.DELETE("reserves/accept", h.AcceptReserve)
 
-	e.GET("reports", h.MakeReportMoneyPerService)
+	e.GET("reports", h.MakeReport)
 
 	e.GET("healthcheck", h.HealthCheck)
 }

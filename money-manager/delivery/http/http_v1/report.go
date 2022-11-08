@@ -8,22 +8,22 @@ import (
 	"money-manager/money-manager/delivery"
 )
 
-const (
-	YearParamName  ParamName = "y"
-	MonthParamName ParamName = "m"
-)
+type reportRequest struct {
+	Year  string `query:"y"`
+	Month string `query:"m"`
+	Type  string `query:"type"`
+}
 
-func (e *ServerHandler) MakeReportMoneyPerService(eCtx echo.Context) error {
-	queryParams := eCtx.QueryParams()
+func (e *ServerHandler) MakeReport(eCtx echo.Context) error {
+	reportReq := reportRequest{}
 
-	year := queryParams.Get(string(YearParamName))
-	month := queryParams.Get(string(MonthParamName))
-
-	if year == "" || month == "" {
+	err := (&echo.DefaultBinder{}).BindQueryParams(eCtx, &reportReq)
+	if err != nil {
 		return delivery.ErrBadRequestParams
 	}
 
-	filepath, filename, err := e.uc.MakeReportMoneyPerService(eCtx.Request().Context(), year, month)
+	filepath, filename, err := e.uc.MakeReport(
+		eCtx.Request().Context(), reportReq.Type, reportReq.Year, reportReq.Month)
 	if err != nil {
 		return err
 	}

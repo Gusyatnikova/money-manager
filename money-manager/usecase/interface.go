@@ -16,7 +16,7 @@ type MoneyManagerUseCase interface {
 	AcceptReserve(ctx context.Context, res entity.Reserve, money entity.Money) error
 	CancelReserve(ctx context.Context, res entity.Reserve) error
 
-	MakeReportMoneyPerService(ctx context.Context, year, month string) (string, string, error)
+	MakeReport(ctx context.Context, reportType, year, month string) (string, string, error)
 
 	HealthCheck(ctx context.Context) error
 }
