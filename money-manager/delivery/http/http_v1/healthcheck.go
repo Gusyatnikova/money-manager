@@ -4,6 +4,11 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
+// HealthCheck godoc
+// @Summary Return 200 if service is OK
+// @Tags    Health check
+// @Success 200 string OK
+// @Router  /healthcheck [get]
 func (e *ServerHandler) HealthCheck(eCtx echo.Context) error {
 	return e.uc.HealthCheck(eCtx.Request().Context())
 }

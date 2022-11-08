@@ -1,0 +1,431 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "title": "Money Manager API",
+        "contact": {
+            "email": "gusiatnikovanatalia@gmail.com"
+        },
+        "license": {
+            "name": "free-to-use-license"
+        },
+        "version": "1.0"
+    },
+    "paths": {
+        "/healthcheck": {
+            "get": {
+                "tags": [
+                    "Health check"
+                ],
+                "summary": "Return 200 if service is OK",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/reports": {
+            "get": {
+                "description": "type=money_per_service for money per Service report",
+                "tags": [
+                    "Report operations"
+                ],
+                "summary": "Return attachment with generated report for required report type, year and month",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "type of report",
+                        "name": "type",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "month for data selection",
+                        "name": "m",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "year for data selection",
+                        "name": "y",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request for report"
+                    }
+                }
+            }
+        },
+        "/reserves/accept": {
+            "delete": {
+                "description": "\"If accepted money = reserved money, add operation to report and delete reserve, if accepted money \u003c reserved money, add to user's balance (reserved money - accepted money) and add operation to report, then delete reserve. If accepted money \u003e reserved money then error 400\"",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Reserve operations"
+                ],
+                "summary": "Debit money from reserve and add to report.",
+                "parameters": [
+                    {
+                        "description": "ID's of user, service, order and money to reserve",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/ReserveRequestBody"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/UserBalanceResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid id's of reserve or | Invalid money | Insufficient funds to complete the operation"
+                    },
+                    "404": {
+                        "description": "Requested resource is not found"
+                    }
+                }
+            }
+        },
+        "/reserves/add": {
+            "post": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Reserve operations"
+                ],
+                "summary": "Reserve user's money to separate account",
+                "parameters": [
+                    {
+                        "description": "ID's of user, service, order and money to reserve",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/ReserveRequestBody"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/UserBalanceResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid id's of reserve | Invalid money | Insufficient funds to complete the operation"
+                    },
+                    "404": {
+                        "description": "Requested resource is not found"
+                    }
+                }
+            }
+        },
+        "/reserves/cancel": {
+            "delete": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Reserve operations"
+                ],
+                "summary": "Return reserved money to user's account and delete reserve",
+                "parameters": [
+                    {
+                        "description": "ID's of user, service, order and money to reserve",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/ReserveKey"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/UserBalanceResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid id's of reserve"
+                    },
+                    "404": {
+                        "description": "Requested resource is not found"
+                    }
+                }
+            }
+        },
+        "/transfers": {
+            "patch": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Balance operations"
+                ],
+                "summary": "Transfer money from the user to user",
+                "parameters": [
+                    {
+                        "description": "ID of sender and recipient and money to transfer",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/TransferMoneyRequestBody"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/TransferMoneyResponseBody"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid user | Invalid money | Insufficient funds to complete the operation | Money limit is exceeded(Resulting sum is exceeds ^uint(0))"
+                    },
+                    "404": {
+                        "description": "Requested resource is not found"
+                    }
+                }
+            }
+        },
+        "/users/balance": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Balance operations"
+                ],
+                "summary": "Get user's balance",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "get balance of user",
+                        "name": "user_id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/UserBalanceResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid user"
+                    },
+                    "404": {
+                        "description": "Requested resource is not found"
+                    }
+                }
+            },
+            "post": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Balance operations"
+                ],
+                "summary": "Crediting money to the user's balance",
+                "parameters": [
+                    {
+                        "description": "ID of user and money to credit",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/UserMoneyRequestBody"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/UserBalanceResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid user | Invalid money | Money limit is exceeded(Resulting sum is exceeds ^uint(0))"
+                    },
+                    "404": {
+                        "description": "Requested resource is not found"
+                    }
+                }
+            },
+            "patch": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Balance operations"
+                ],
+                "summary": "Debit money from the user's balance",
+                "parameters": [
+                    {
+                        "description": "ID of user and money to debit",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/UserMoneyRequestBody"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/UserBalanceResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid user | Invalid money | Insufficient funds to complete the operation"
+                    },
+                    "404": {
+                        "description": "Requested resource is not found"
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "Balance": {
+            "type": "object",
+            "properties": {
+                "available_amount": {
+                    "type": "integer",
+                    "example": 100000
+                },
+                "current_amount": {
+                    "type": "integer",
+                    "example": 100500
+                },
+                "unit": {
+                    "type": "string",
+                    "example": "kop"
+                }
+            }
+        },
+        "Money": {
+            "type": "object",
+            "properties": {
+                "amount": {
+                    "type": "string",
+                    "example": "123.45"
+                },
+                "unit": {
+                    "type": "string",
+                    "example": "rub"
+                }
+            }
+        },
+        "ReserveKey": {
+            "type": "object",
+            "properties": {
+                "order_id": {
+                    "type": "string",
+                    "example": "123"
+                },
+                "service_id": {
+                    "type": "string",
+                    "example": "delivery"
+                },
+                "user_id": {
+                    "type": "string",
+                    "example": "user123"
+                }
+            }
+        },
+        "ReserveRequestBody": {
+            "type": "object",
+            "properties": {
+                "money": {
+                    "$ref": "#/definitions/Money"
+                },
+                "reserve_id": {
+                    "$ref": "#/definitions/ReserveKey"
+                }
+            }
+        },
+        "TransferMoneyRequestBody": {
+            "type": "object",
+            "properties": {
+                "from_user_id": {
+                    "type": "string",
+                    "example": "userFrom"
+                },
+                "money": {
+                    "$ref": "#/definitions/Money"
+                },
+                "to_user_id": {
+                    "type": "string",
+                    "example": "userTo"
+                }
+            }
+        },
+        "TransferMoneyResponseBody": {
+            "type": "object",
+            "properties": {
+                "recipient": {
+                    "$ref": "#/definitions/UserBalanceResponse"
+                },
+                "sender": {
+                    "$ref": "#/definitions/UserBalanceResponse"
+                }
+            }
+        },
+        "UserBalanceResponse": {
+            "type": "object",
+            "properties": {
+                "amount": {
+                    "$ref": "#/definitions/Balance"
+                },
+                "user_id": {
+                    "type": "string",
+                    "example": "111555"
+                }
+            }
+        },
+        "UserMoneyRequestBody": {
+            "type": "object",
+            "properties": {
+                "money": {
+                    "$ref": "#/definitions/Money"
+                },
+                "user_id": {
+                    "type": "string"
+                }
+            }
+        }
+    }
+}

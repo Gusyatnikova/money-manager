@@ -1,0 +1,290 @@
+definitions:
+  Balance:
+    properties:
+      available_amount:
+        example: 100000
+        type: integer
+      current_amount:
+        example: 100500
+        type: integer
+      unit:
+        example: kop
+        type: string
+    type: object
+  Money:
+    properties:
+      amount:
+        example: "123.45"
+        type: string
+      unit:
+        example: rub
+        type: string
+    type: object
+  ReserveKey:
+    properties:
+      order_id:
+        example: "123"
+        type: string
+      service_id:
+        example: delivery
+        type: string
+      user_id:
+        example: user123
+        type: string
+    type: object
+  ReserveRequestBody:
+    properties:
+      money:
+        $ref: '#/definitions/Money'
+      reserve_id:
+        $ref: '#/definitions/ReserveKey'
+    type: object
+  TransferMoneyRequestBody:
+    properties:
+      from_user_id:
+        example: userFrom
+        type: string
+      money:
+        $ref: '#/definitions/Money'
+      to_user_id:
+        example: userTo
+        type: string
+    type: object
+  TransferMoneyResponseBody:
+    properties:
+      recipient:
+        $ref: '#/definitions/UserBalanceResponse'
+      sender:
+        $ref: '#/definitions/UserBalanceResponse'
+    type: object
+  UserBalanceResponse:
+    properties:
+      amount:
+        $ref: '#/definitions/Balance'
+      user_id:
+        example: "111555"
+        type: string
+    type: object
+  UserMoneyRequestBody:
+    properties:
+      money:
+        $ref: '#/definitions/Money'
+      user_id:
+        type: string
+    type: object
+info:
+  contact:
+    email: gusiatnikovanatalia@gmail.com
+  license:
+    name: free-to-use-license
+  title: Money Manager API
+  version: "1.0"
+paths:
+  /healthcheck:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+      summary: Return 200 if service is OK
+      tags:
+      - Health check
+  /reports:
+    get:
+      description: type=money_per_service for money per Service report
+      parameters:
+      - description: type of report
+        in: query
+        name: type
+        required: true
+        type: string
+      - description: month for data selection
+        in: query
+        name: m
+        required: true
+        type: string
+      - description: year for data selection
+        in: query
+        name: "y"
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Invalid request for report
+      summary: Return attachment with generated report for required report type, year
+        and month
+      tags:
+      - Report operations
+  /reserves/accept:
+    delete:
+      description: '"If accepted money = reserved money, add operation to report and
+        delete reserve, if accepted money < reserved money, add to user''s balance
+        (reserved money - accepted money) and add operation to report, then delete
+        reserve. If accepted money > reserved money then error 400"'
+      parameters:
+      - description: ID's of user, service, order and money to reserve
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/ReserveRequestBody'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/UserBalanceResponse'
+        "400":
+          description: Invalid id's of reserve or | Invalid money | Insufficient funds
+            to complete the operation
+        "404":
+          description: Requested resource is not found
+      summary: Debit money from reserve and add to report.
+      tags:
+      - Reserve operations
+  /reserves/add:
+    post:
+      parameters:
+      - description: ID's of user, service, order and money to reserve
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/ReserveRequestBody'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/UserBalanceResponse'
+        "400":
+          description: Invalid id's of reserve | Invalid money | Insufficient funds
+            to complete the operation
+        "404":
+          description: Requested resource is not found
+      summary: Reserve user's money to separate account
+      tags:
+      - Reserve operations
+  /reserves/cancel:
+    delete:
+      parameters:
+      - description: ID's of user, service, order and money to reserve
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/ReserveKey'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/UserBalanceResponse'
+        "400":
+          description: Invalid id's of reserve
+        "404":
+          description: Requested resource is not found
+      summary: Return reserved money to user's account and delete reserve
+      tags:
+      - Reserve operations
+  /transfers:
+    patch:
+      parameters:
+      - description: ID of sender and recipient and money to transfer
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/TransferMoneyRequestBody'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/TransferMoneyResponseBody'
+        "400":
+          description: Invalid user | Invalid money | Insufficient funds to complete
+            the operation | Money limit is exceeded(Resulting sum is exceeds ^uint(0))
+        "404":
+          description: Requested resource is not found
+      summary: Transfer money from the user to user
+      tags:
+      - Balance operations
+  /users/balance:
+    get:
+      parameters:
+      - description: get balance of user
+        in: query
+        name: user_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/UserBalanceResponse'
+        "400":
+          description: Invalid user
+        "404":
+          description: Requested resource is not found
+      summary: Get user's balance
+      tags:
+      - Balance operations
+    patch:
+      parameters:
+      - description: ID of user and money to debit
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/UserMoneyRequestBody'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/UserBalanceResponse'
+        "400":
+          description: Invalid user | Invalid money | Insufficient funds to complete
+            the operation
+        "404":
+          description: Requested resource is not found
+      summary: Debit money from the user's balance
+      tags:
+      - Balance operations
+    post:
+      parameters:
+      - description: ID of user and money to credit
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/UserMoneyRequestBody'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/UserBalanceResponse'
+        "400":
+          description: Invalid user | Invalid money | Money limit is exceeded(Resulting
+            sum is exceeds ^uint(0))
+        "404":
+          description: Requested resource is not found
+      summary: Crediting money to the user's balance
+      tags:
+      - Balance operations
+swagger: "2.0"

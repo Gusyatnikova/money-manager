@@ -10,41 +10,50 @@ import (
 )
 
 type balance struct {
-	Current   entity.MoneyAmount `json:"current_amount"`
-	Available entity.MoneyAmount `json:"available_amount"`
-	Unit      string             `json:"unit"`
-}
+	Current   entity.MoneyAmount `json:"current_amount" example:"100500"`
+	Available entity.MoneyAmount `json:"available_amount"  example:"100000"`
+	Unit      string             `json:"unit" example:"kop"`
+} //@name Balance
 
 type userBalanceResp struct {
-	UserId string  `json:"user_id"`
+	UserId string  `json:"user_id" example:"111555"`
 	Ub     balance `json:"amount"`
-}
+} //@name UserBalanceResponse
 
 type money struct {
-	Value string `json:"amount"`
-	Unit  string `json:"unit"`
-}
+	Value string `json:"amount" example:"123.45"`
+	Unit  string `json:"unit" example:"rub"`
+} //@name Money
 
 type userMoneyReqBody struct {
 	UserId string `json:"user_id"`
 	Money  money  `json:"money"`
-}
+} //@name UserMoneyRequestBody
 
 type transferMoneyReqBody struct {
-	FromUserId string `json:"from_user_id"`
-	ToUserId   string `json:"to_user_id"`
+	FromUserId string `json:"from_user_id" example:"userFrom"`
+	ToUserId   string `json:"to_user_id" example:"userTo"`
 	Money      money  `json:"money"`
-}
+} //@name TransferMoneyRequestBody
 
 type transferMoneyResBody struct {
 	FromUser userBalanceResp `json:"sender"`
 	ToUser   userBalanceResp `json:"recipient"`
-}
+} //@name TransferMoneyResponseBody
 
 type ParamName string
 
 const UserIdParamName ParamName = "user_id"
 
+// GetBalance godoc
+// @Summary Get user's balance
+// @Tags    Balance operations
+// @Produce json
+// @Param   user_id query    string true "get balance of user"
+// @Success 200     {object} http_v1.userBalanceResp
+// @Failure 400     "Invalid user"
+// @Failure 404     "Requested resource is not found"
+// @Router  /users/balance [get]
 func (e *ServerHandler) GetBalance(eCtx echo.Context) error {
 	usr := eCtx.QueryParam(string(UserIdParamName))
 
@@ -56,6 +65,15 @@ func (e *ServerHandler) GetBalance(eCtx echo.Context) error {
 	return eCtx.JSON(http.StatusOK, makeUserBalanceResponse(entity.UserId(usr), bal))
 }
 
+// AddMoney godoc
+// @Summary Crediting money to the user's balance
+// @Tags    Balance operations
+// @Param   request body userMoneyReqBody true "ID of user and money to credit"
+// @Produce json
+// @Success 200 {object} userBalanceResp
+// @Failure 400 "Invalid user | Invalid money | Money limit is exceeded(Resulting sum is exceeds ^uint(0))"
+// @Failure 404 "Requested resource is not found"
+// @Router  /users/balance [post]
 func (e *ServerHandler) AddMoney(eCtx echo.Context) error {
 	reqBody, err := parseUserMoneyBody(eCtx)
 	if err != nil {
@@ -72,6 +90,15 @@ func (e *ServerHandler) AddMoney(eCtx echo.Context) error {
 	return e.GetBalance(eCtx)
 }
 
+// DebitMoney godoc
+// @Summary Debit money from the user's balance
+// @Tags    Balance operations
+// @Param   request body userMoneyReqBody true "ID of user and money to debit"
+// @Produce json
+// @Success 200 {object} http_v1.userBalanceResp
+// @Failure 400 "Invalid user | Invalid money | Insufficient funds to complete the operation"
+// @Failure 404 "Requested resource is not found"
+// @Router  /users/balance [patch]
 func (e *ServerHandler) DebitMoney(eCtx echo.Context) error {
 	reqBody, err := parseUserMoneyBody(eCtx)
 	if err != nil {
@@ -88,6 +115,15 @@ func (e *ServerHandler) DebitMoney(eCtx echo.Context) error {
 	return e.GetBalance(eCtx)
 }
 
+// TransferMoney godoc
+// @Summary Transfer money from the user to user
+// @Tags    Balance operations
+// @Param   request body http_v1.transferMoneyReqBody true "ID of sender and recipient and money to transfer"
+// @Produce json
+// @Success 200 {object} http_v1.transferMoneyResBody
+// @Failure 400 "Invalid user | Invalid money | Insufficient funds to complete the operation | Money limit is exceeded(Resulting sum is exceeds ^uint(0))"
+// @Failure 404 "Requested resource is not found"
+// @Router  /transfers [patch]
 func (e *ServerHandler) TransferMoney(eCtx echo.Context) error {
 	reqBody, err := parseUserTransferReqBody(eCtx)
 	if err != nil {
