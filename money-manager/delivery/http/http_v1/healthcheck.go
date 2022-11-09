@@ -5,9 +5,10 @@ import (
 )
 
 // HealthCheck godoc
-// @Summary Return 200 if service is OK
+// @Summary Return 200 and empty json if service is OK
 // @Tags    Health check
-// @Success 200 string OK
+// @Produce json
+// @Success 200
 // @Router  /healthcheck [get]
 func (e *ServerHandler) HealthCheck(eCtx echo.Context) error {
 	return e.uc.HealthCheck(eCtx.Request().Context())

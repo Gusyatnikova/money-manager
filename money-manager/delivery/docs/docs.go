@@ -23,16 +23,16 @@ const docTemplate = `{
     "paths": {
         "/healthcheck": {
             "get": {
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "Health check"
                 ],
-                "summary": "Return 200 if service is OK",
+                "summary": "Return 200 and empty json if service is OK",
                 "responses": {
                     "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "string"
-                        }
+                        "description": "OK"
                     }
                 }
             }
