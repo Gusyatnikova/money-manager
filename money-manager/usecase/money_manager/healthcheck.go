@@ -5,5 +5,5 @@ import (
 )
 
 func (e *moneyManager) HealthCheck(ctx context.Context) error {
-	return nil
+	return e.repo.HealthCheck(ctx)
 }
